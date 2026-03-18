@@ -1,0 +1,19 @@
+<!-- ============================================================
+badge.component.html
+============================================================ -->
+
+<span [class]="badgeClasses">
+
+  <!-- Colored dot indicator -->
+  @if (dot) {
+    <span
+      class="w-1.5 h-1.5 rounded-full shrink-0"
+      [ngClass]="resolvedDotClass"
+      aria-hidden="true"
+    ></span>
+  }
+
+  <!-- Label projected from parent -->
+  <ng-content></ng-content>
+
+</span>

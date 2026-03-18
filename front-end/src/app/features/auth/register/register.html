@@ -1,0 +1,254 @@
+<!-- ============================================================
+register.component.html
+
+SHARED COMPONENTS USED:
+  <app-card>    → the outer white box — same as login page
+  <app-button>  → submit button with built-in loading spinner
+
+SAME PRINCIPLE AS LOGIN:
+  The card and button look identical to the login page.
+  That consistency comes for FREE because both pages
+  use the SAME shared components, not duplicate raw HTML.
+============================================================ -->
+
+<div class="min-h-screen flex">
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- LEFT PANEL — Branding                             -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="hidden lg:flex lg:w-5/12 bg-gray-900 flex-col justify-between p-12 relative overflow-hidden">
+
+    <div class="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Logo -->
+    <div class="relative flex items-center gap-3">
+      <div class="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
+        <span class="text-white font-bold text-lg">Q</span>
+      </div>
+      <span class="text-white font-bold text-xl tracking-tight">Quvio</span>
+    </div>
+
+    <!-- Feature list -->
+    <div class="relative space-y-6">
+      <h1 class="text-4xl font-light text-white leading-snug">
+        Start sending<br>
+        <span class="text-indigo-400 font-semibold">professional invoices</span><br>
+        today.
+      </h1>
+      <ul class="space-y-3">
+        @for (feature of features; track feature) {
+          <li class="flex items-center gap-3 text-sm text-gray-400">
+            <span class="w-5 h-5 bg-indigo-500/20 rounded-full flex items-center justify-center shrink-0">
+              <svg class="w-3 h-3 text-indigo-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            {{ feature }}
+          </li>
+        }
+      </ul>
+    </div>
+
+    <p class="relative text-gray-600 text-xs">Free to get started. No credit card required.</p>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- RIGHT PANEL — Register Form                       -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="flex-1 bg-gray-50 flex items-center justify-center p-6">
+    <div class="w-full max-w-md space-y-6">
+
+      <!-- Mobile logo -->
+      <div class="flex items-center gap-2 lg:hidden">
+        <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold text-sm">Q</span>
+        </div>
+        <span class="font-bold text-gray-900">Quvio</span>
+      </div>
+
+      <!--
+        <app-card padding="lg"> — same component as login page
+        This is the POINT of shared components:
+        login page and register page have identical card styling
+        with ZERO code duplication.
+      -->
+      <app-card padding="lg">
+        <div class="space-y-6">
+
+          <!-- Heading -->
+          <div class="space-y-1">
+            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Create your account</h2>
+            <p class="text-sm text-gray-500">Get started with Quvio for free</p>
+          </div>
+
+          <!-- Error alert -->
+          @if (errorMessage) {
+            <div class="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <svg class="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+              </svg>
+              <span>{{ errorMessage }}</span>
+            </div>
+          }
+
+          <!-- Form -->
+          <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" novalidate class="space-y-4">
+
+            <!-- Full Name -->
+            <div class="space-y-1.5">
+              <label for="name" class="block text-sm font-medium text-gray-700">Full name</label>
+              <input
+                id="name"
+                type="text"
+                formControlName="name"
+                placeholder="John Doe"
+                autocomplete="name"
+                class="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-white
+                       text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-150
+                       focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                [class.border-red-400]="name?.invalid && name?.touched"
+              />
+              @if (name?.invalid && name?.touched) {
+                <p class="text-xs text-red-500">
+                  @if (name?.errors?.['required']) { Name is required }
+                  @else if (name?.errors?.['minlength']) { Minimum 2 characters }
+                </p>
+              }
+            </div>
+
+            <!-- Email -->
+            <div class="space-y-1.5">
+              <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
+              <input
+                id="email"
+                type="email"
+                formControlName="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                class="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-white
+                       text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-150
+                       focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                [class.border-red-400]="email?.invalid && email?.touched"
+              />
+              @if (email?.invalid && email?.touched) {
+                <p class="text-xs text-red-500">
+                  @if (email?.errors?.['required']) { Email is required }
+                  @else if (email?.errors?.['email']) { Please enter a valid email }
+                </p>
+              }
+            </div>
+
+            <!-- Password + Confirm — 2 columns on sm+ -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <!-- Password -->
+              <div class="space-y-1.5">
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <div class="relative">
+                  <input
+                    id="password"
+                    [type]="showPassword ? 'text' : 'password'"
+                    formControlName="password"
+                    placeholder="Min. 8 chars"
+                    autocomplete="new-password"
+                    class="w-full px-4 py-2.5 pr-10 text-sm rounded-lg border border-gray-200 bg-white
+                           text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-150
+                           focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    [class.border-red-400]="password?.invalid && password?.touched"
+                  />
+                  <button type="button"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    (click)="showPassword = !showPassword">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                @if (password?.invalid && password?.touched) {
+                  <p class="text-xs text-red-500">
+                    @if (password?.errors?.['required']) { Required }
+                    @else if (password?.errors?.['minlength']) { Min. 8 characters }
+                  </p>
+                }
+              </div>
+
+              <!-- Confirm Password -->
+              <div class="space-y-1.5">
+                <label for="confirm" class="block text-sm font-medium text-gray-700">Confirm</label>
+                <div class="relative">
+                  <input
+                    id="confirm"
+                    [type]="showConfirm ? 'text' : 'password'"
+                    formControlName="password_confirmation"
+                    placeholder="Repeat password"
+                    autocomplete="new-password"
+                    class="w-full px-4 py-2.5 pr-10 text-sm rounded-lg border border-gray-200 bg-white
+                           text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-150
+                           focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                    [class.border-red-400]="passwordsMismatch"
+                  />
+                  <button type="button"
+                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    (click)="showConfirm = !showConfirm">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+                <!-- Form-level error — checked on the FormGroup, not the field -->
+                @if (passwordsMismatch) {
+                  <p class="text-xs text-red-500">Passwords do not match</p>
+                }
+              </div>
+
+            </div>
+
+            <!-- Terms -->
+            <p class="text-xs text-gray-400 leading-relaxed">
+              By creating an account you agree to our
+              <a href="#" class="text-indigo-500 hover:underline">Terms of Service</a>
+              and
+              <a href="#" class="text-indigo-500 hover:underline">Privacy Policy</a>.
+            </p>
+
+            <!--
+              <app-button> — same shared button as login page.
+              variant="primary" [loading]="isLoading" [fullWidth]="true"
+              → When isLoading is true: spinner appears, button is disabled.
+              → Identical behaviour to the login page button.
+              → Zero duplicated spinner HTML.
+            -->
+            <app-button
+              type="submit"
+              variant="primary"
+              size="md"
+              [loading]="isLoading"
+              [fullWidth]="true"
+            >
+              Create account
+            </app-button>
+
+          </form>
+
+          <!-- Login link -->
+          <p class="text-center text-sm text-gray-500">
+            Already have an account?
+            <a
+              routerLink="/auth/login"
+              class="text-indigo-500 font-semibold hover:text-indigo-600 hover:underline underline-offset-2 transition-colors"
+            >
+              Sign in
+            </a>
+          </p>
+
+        </div>
+      </app-card>
+
+    </div>
+  </div>
+
+</div>

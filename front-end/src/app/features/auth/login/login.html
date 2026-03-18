@@ -1,0 +1,228 @@
+<!-- ============================================================
+login.component.html
+
+SHARED COMPONENTS USED:
+  <app-card>    → replaces raw <div class="bg-white rounded-2xl shadow-md p-8">
+                  card styling is defined ONCE in shared/components/card
+  <app-button>  → replaces raw <button class="w-full bg-indigo-500 ...">
+                  [loading]="isLoading" handles spinner + disabled state automatically
+
+WHY THIS IS BETTER:
+  If you change the card shadow or button style later, you update
+  it in ONE shared component and every page updates automatically.
+  No hunting through 10 templates to fix the same <div> or <button>.
+============================================================ -->
+
+<div class="min-h-screen flex">
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- LEFT PANEL — Branding (hidden on mobile)          -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="hidden lg:flex lg:w-5/12 bg-gray-900 flex-col justify-between p-12 relative overflow-hidden">
+
+    <!-- Decorative glow blobs -->
+    <div class="absolute -top-24 -left-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -right-24 w-80 h-80 bg-indigo-400/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- Logo -->
+    <div class="relative flex items-center gap-3">
+      <div class="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
+        <span class="text-white font-bold text-lg">Q</span>
+      </div>
+      <span class="text-white font-bold text-xl tracking-tight">Quvio</span>
+    </div>
+
+    <!-- Tagline -->
+    <div class="relative space-y-4">
+      <h1 class="text-4xl font-light text-white leading-snug">
+        Invoices & Quotes.<br>
+        <span class="text-indigo-400 font-semibold">Built for freelancers.</span>
+      </h1>
+      <p class="text-gray-400 text-sm leading-relaxed max-w-xs">
+        Create professional invoices, send quotes, and get paid faster — all in one place.
+      </p>
+    </div>
+
+    <!-- Social proof -->
+    <div class="relative flex items-center gap-3">
+      <div class="flex -space-x-2">
+        <div class="w-8 h-8 rounded-full bg-indigo-400 border-2 border-gray-900 flex items-center justify-center text-white text-xs font-bold">A</div>
+        <div class="w-8 h-8 rounded-full bg-purple-400 border-2 border-gray-900 flex items-center justify-center text-white text-xs font-bold">B</div>
+        <div class="w-8 h-8 rounded-full bg-pink-400 border-2 border-gray-900 flex items-center justify-center text-white text-xs font-bold">C</div>
+      </div>
+      <p class="text-gray-500 text-xs">Trusted by 500+ freelancers</p>
+    </div>
+
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- RIGHT PANEL — Login Form                          -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="flex-1 bg-gray-50 flex items-center justify-center p-6">
+    <div class="w-full max-w-md space-y-6">
+
+      <!-- Mobile-only logo -->
+      <div class="flex items-center gap-2 lg:hidden">
+        <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+          <span class="text-white font-bold text-sm">Q</span>
+        </div>
+        <span class="font-bold text-gray-900">Quvio</span>
+      </div>
+
+      <!--
+        ┌─────────────────────────────────────────────────────┐
+        │  <app-card padding="lg">                            │
+        │  REPLACES: <div class="bg-white rounded-2xl         │
+        │                         shadow-md p-8 space-y-6">   │
+        │  The card component owns background, shadow,        │
+        │  border-radius, and overflow. We just pass content. │
+        └─────────────────────────────────────────────────────┘
+      -->
+      <app-card padding="lg">
+        <div class="space-y-6">
+
+          <!-- Heading -->
+          <div class="space-y-1">
+            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Welcome back</h2>
+            <p class="text-sm text-gray-500">Sign in to your Quvio account</p>
+          </div>
+
+          <!-- Error alert -->
+          @if (errorMessage) {
+            <div class="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <svg class="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/>
+              </svg>
+              <span>{{ errorMessage }}</span>
+            </div>
+          }
+
+          <!-- Form -->
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate class="space-y-4">
+
+            <!-- Email -->
+            <div class="space-y-1.5">
+              <label for="email" class="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <input
+                id="email"
+                type="email"
+                formControlName="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                class="w-full px-4 py-2.5 text-sm rounded-lg border border-gray-200 bg-white
+                       text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-150
+                       focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                [class.border-red-400]="email?.invalid && email?.touched"
+              />
+              @if (email?.invalid && email?.touched) {
+                <p class="text-xs text-red-500">
+                  @if (email?.errors?.['required']) { Email is required }
+                  @else if (email?.errors?.['email']) { Please enter a valid email }
+                </p>
+              }
+            </div>
+
+            <!-- Password -->
+            <div class="space-y-1.5">
+              <label for="password" class="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div class="relative">
+                <input
+                  id="password"
+                  [type]="showPassword ? 'text' : 'password'"
+                  formControlName="password"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                  class="w-full px-4 py-2.5 pr-10 text-sm rounded-lg border border-gray-200 bg-white
+                         text-gray-900 placeholder:text-gray-400 outline-none transition-all duration-150
+                         focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                  [class.border-red-400]="password?.invalid && password?.touched"
+                />
+                <button
+                  type="button"
+                  class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  (click)="showPassword = !showPassword"
+                  [attr.aria-label]="showPassword ? 'Hide password' : 'Show password'"
+                >
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    @if (!showPassword) {
+                      <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round"/>
+                    } @else {
+                      <path d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" stroke-linecap="round" stroke-linejoin="round"/>
+                    }
+                  </svg>
+                </button>
+              </div>
+              @if (password?.invalid && password?.touched) {
+                <p class="text-xs text-red-500">
+                  @if (password?.errors?.['required']) { Password is required }
+                  @else if (password?.errors?.['minlength']) { Minimum 8 characters }
+                </p>
+              }
+            </div>
+
+            <!--
+              ┌──────────────────────────────────────────────────────────┐
+              │  <app-button type="submit" [loading]="isLoading"         │
+              │              [fullWidth]="true">                         │
+              │                                                          │
+              │  REPLACES this entire block:                             │
+              │  <button type="submit" [disabled]="isLoading"            │
+              │    class="w-full flex items-center justify-center gap-2  │
+              │           px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600  │
+              │           text-white font-semibold rounded-lg            │
+              │           disabled:opacity-50 ...">                      │
+              │    @if (isLoading) {                                      │
+              │      <svg class="animate-spin" ...> ... </svg>           │
+              │      Signing in...                                        │
+              │    } @else { Sign in }                                    │
+              │  </button>                                                │
+              │                                                          │
+              │  All that logic lives ONCE in button.component — not     │
+              │  repeated on every page. This template stays clean.      │
+              └──────────────────────────────────────────────────────────┘
+            -->
+            <app-button
+              type="submit"
+              variant="primary"
+              size="md"
+              [loading]="isLoading"
+              [fullWidth]="true"
+            >
+              Sign in
+            </app-button>
+
+          </form>
+
+          <!-- Divider -->
+          <div class="relative">
+            <div class="absolute inset-0 flex items-center">
+              <div class="w-full border-t border-gray-100"></div>
+            </div>
+            <div class="relative flex justify-center">
+              <span class="px-3 bg-white text-xs text-gray-400">or</span>
+            </div>
+          </div>
+
+          <!-- Link to register -->
+          <p class="text-center text-sm text-gray-500">
+            Don't have an account?
+            <a
+              routerLink="/auth/register"
+              class="text-indigo-500 font-semibold hover:text-indigo-600 hover:underline underline-offset-2 transition-colors"
+            >
+              Create one for free
+            </a>
+          </p>
+
+        </div>
+      </app-card>
+
+    </div>
+  </div>
+
+</div>

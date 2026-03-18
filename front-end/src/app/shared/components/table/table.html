@@ -1,0 +1,103 @@
+<!-- ============================================================
+table.component.html
+============================================================ -->
+
+<div class="rounded-xl border border-gray-200 overflow-hidden bg-white">
+
+  <!-- Horizontally scrollable on small screens -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm border-collapse">
+
+      <!-- ── THEAD ──────────────────────────────────────── -->
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          @for (col of columns; track col.label) {
+            <th
+              class="px-4 py-3 font-semibold text-xs text-gray-500 uppercase tracking-wider whitespace-nowrap select-none"
+              [class.cursor-pointer]="col.key"
+              [class.hover:bg-gray-100]="col.key"
+              [class.text-indigo-600]="isSorted(col)"
+              [class.bg-indigo-50]="isSorted(col)"
+              [style.width]="col.width"
+              [ngClass]="getAlignClass(col.align)"
+              (click)="onSort(col)"
+            >
+              <span class="inline-flex items-center gap-1">
+                {{ col.label }}
+
+                <!-- Sort indicator — only on sortable columns -->
+                @if (col.key) {
+                  <svg
+                    class="w-3 h-3 transition-transform duration-150"
+                    [class.opacity-30]="!isSorted(col)"
+                    [class.text-indigo-500]="isSorted(col)"
+                    [class.rotate-180]="isSorted(col) && sortDir === 'desc'"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                    aria-hidden="true"
+                  >
+                    <path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                }
+              </span>
+            </th>
+          }
+        </tr>
+      </thead>
+
+      <!-- ── TBODY ──────────────────────────────────────── -->
+      <tbody class="divide-y divide-gray-100">
+
+        <!-- LOADING — skeleton rows -->
+        @if (loading) {
+          @for (row of skeletonArray; track $index) {
+            <tr class="animate-pulse">
+              @for (col of columns; track col.label) {
+                <td class="px-4 py-3">
+                  <div
+                    class="h-3 bg-gray-200 rounded"
+                    [style.width]="$index % 3 === 0 ? '80%' : $index % 2 === 0 ? '60%' : '90%'"
+                  ></div>
+                </td>
+              }
+            </tr>
+          }
+
+        <!-- EMPTY STATE -->
+        } @else if (empty) {
+          <tr>
+            <td [attr.colspan]="columns.length" class="p-0">
+              <div class="flex flex-col items-center justify-center gap-3 py-16 px-8 text-center">
+
+                <!-- Document icon -->
+                <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+
+                <div class="space-y-1">
+                  <p class="text-sm font-semibold text-gray-900">{{ emptyTitle }}</p>
+                  <p class="text-xs text-gray-500 max-w-xs leading-relaxed">{{ emptySubtitle }}</p>
+                </div>
+
+                <!-- Optional action button slot -->
+                <ng-content select="[slot=empty-action]"></ng-content>
+              </div>
+            </td>
+          </tr>
+
+        <!-- NORMAL — projected rows from parent -->
+        } @else {
+          <ng-content></ng-content>
+        }
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── FOOTER (pagination, row count) ─── hidden when empty -->
+  <div class="empty:hidden px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+    <ng-content select="[slot=footer]"></ng-content>
+  </div>
+
+</div>

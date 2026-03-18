@@ -1,0 +1,235 @@
+// ============================================================
+// _variables.scss
+// 🎨 DESIGN TOKENS — The single source of truth for ALL visual values.
+//
+// WHY THIS FILE EXISTS:
+// Instead of writing the same color "#5d5fef" in 50 different places,
+// we define it ONCE here as $color-primary.
+// If you want to rebrand Quvio → change it here → whole app updates.
+//
+// HOW TO USE IN OTHER FILES:
+//   @use '../styles/variables' as v;
+//   color: v.$color-primary;
+// ============================================================
+
+
+// ── BRAND COLORS ─────────────────────────────────────────
+//
+// Primary = the main brand color (buttons, links, active states)
+// We use a deep indigo — professional, memorable, not the cliché purple.
+//
+$color-primary:         #5d5fef;      // Main indigo — buttons, links, active
+$color-primary-dark:    #4547d0;      // Hover state for primary
+$color-primary-light:   #e8e8fd;      // Light tint — badges, hover backgrounds
+$color-primary-rgb:     93, 95, 239;  // RGB version — used inside rgba()
+
+// Accent = warm amber — warnings, highlights, "pending" status
+$color-accent:          #f59e0b;
+$color-accent-dark:     #d97706;
+$color-accent-light:    #fef3c7;
+
+// Success = emerald green — paid invoices, completed states
+$color-success:         #10b981;
+$color-success-dark:    #059669;
+$color-success-light:   #d1fae5;
+
+// Danger = red — errors, overdue, delete actions
+$color-danger:          #ef4444;
+$color-danger-dark:     #dc2626;
+$color-danger-light:    #fee2e2;
+
+// Info = blue — neutral informational states
+$color-info:            #3b82f6;
+$color-info-light:      #dbeafe;
+
+
+// ── NEUTRAL GRAY SCALE ───────────────────────────────────
+//
+// A carefully tuned gray scale from near-black to near-white.
+// Used for text, borders, backgrounds, dividers.
+// Named 900 (darkest) → 50 (lightest), same pattern as Tailwind.
+//
+$color-gray-900:  #0f1117;   // Near black — sidebar bg, page headings
+$color-gray-800:  #1a1d27;   // Dark sidebar hover states
+$color-gray-700:  #374151;   // Secondary text on dark backgrounds
+$color-gray-600:  #4b5563;   // Muted body text
+$color-gray-500:  #6b7280;   // Placeholders, disabled text
+$color-gray-400:  #9ca3af;   // Borders on dark backgrounds
+$color-gray-300:  #d1d5db;   // Dividers, subtle borders
+$color-gray-200:  #e5e7eb;   // Input borders, card borders
+$color-gray-100:  #f3f4f6;   // Light hover backgrounds
+$color-gray-50:   #f8f9fc;   // Main page background
+
+$color-white:     #ffffff;
+$color-black:     #000000;
+
+
+// ── SEMANTIC COLOR ALIASES ───────────────────────────────
+//
+// Named by PURPOSE, not by visual value.
+// Use THESE in components — never hardcode hex values in components.
+// This way if you change the design system, you update here only.
+//
+$color-text-primary:    $color-gray-900;  // Main readable body text
+$color-text-secondary:  $color-gray-500;  // Subtitles, hints, secondary labels
+$color-text-muted:      $color-gray-400;  // Timestamps, metadata, fine print
+$color-text-inverse:    $color-white;     // Text that sits on dark backgrounds
+
+$color-bg-page:         $color-gray-50;   // Main app page background
+$color-bg-card:         $color-white;     // Cards, modals, dropdowns
+$color-bg-sidebar:      $color-gray-900;  // Sidebar dark background
+
+$color-border:          $color-gray-200;  // Default border for inputs/cards
+$color-border-focus:    $color-primary;   // Border color when input is focused
+$color-border-error:    $color-danger;    // Border color when input has error
+
+
+// ── TYPOGRAPHY ───────────────────────────────────────────
+//
+// Two font families — loaded from Google Fonts in styles.scss
+//
+// DM Serif Display → headlines and big numbers
+//   Elegant serif with editorial character — sets Quvio apart from
+//   generic sans-serif SaaS dashboards. Used sparingly for impact.
+//
+// DM Sans → all body text, labels, inputs
+//   Geometric sans-serif, optimized for screen readability.
+//   Clean but with personality — not bland like Inter/Roboto.
+//
+// JetBrains Mono → invoice amounts, IDs, codes
+//   Monospaced font makes numbers align perfectly in tables.
+//
+$font-display:  'DM Serif Display', Georgia, serif;
+$font-body:     'DM Sans', Helvetica, sans-serif;
+$font-mono:     'JetBrains Mono', 'Courier New', monospace;
+
+// Font weights — only use these named values
+$font-weight-regular:   400;
+$font-weight-medium:    500;
+$font-weight-semibold:  600;
+$font-weight-bold:      700;
+
+// Font sizes — a modular scale (each step approx ×1.25)
+// rem = relative to root (16px default) — scales with user preferences
+$font-size-xs:    0.75rem;    //  12px — tiny badges, timestamps
+$font-size-sm:    0.875rem;   //  14px — table cells, secondary text
+$font-size-base:  1rem;       //  16px — default body text
+$font-size-md:    1.125rem;   //  18px — slightly prominent body
+$font-size-lg:    1.25rem;    //  20px — card titles, section headings
+$font-size-xl:    1.5rem;     //  24px — page section titles
+$font-size-2xl:   1.875rem;   //  30px — page main titles
+$font-size-3xl:   2.25rem;    //  36px — dashboard big stat numbers
+$font-size-4xl:   3rem;       //  48px — hero / landing text
+
+// Line heights — control readability
+$line-height-tight:   1.25;   // Headings (tighter)
+$line-height-normal:  1.5;    // Body text (comfortable)
+$line-height-relaxed: 1.75;   // Long-form paragraphs (more air)
+
+// Letter spacing — subtle but makes a big difference
+$letter-spacing-tight:  -0.03em;  // Applied to large headings
+$letter-spacing-normal:  0em;     // Default — don't change
+$letter-spacing-wide:    0.06em;  // Uppercase labels, badges, tags
+
+
+// ── SPACING SCALE ────────────────────────────────────────
+//
+// 4px base unit — every value is a multiple of 4px.
+// ALWAYS use these — never write "margin: 13px" or random pixel values.
+// Consistent spacing = visual rhythm = professional look.
+//
+// Usage example:
+//   padding: v.$space-4;   → 1rem = 16px
+//   gap: v.$space-6;       → 1.5rem = 24px
+//
+$space-1:   0.25rem;    //  4px
+$space-2:   0.5rem;     //  8px
+$space-3:   0.75rem;    // 12px
+$space-4:   1rem;       // 16px
+$space-5:   1.25rem;    // 20px
+$space-6:   1.5rem;     // 24px
+$space-8:   2rem;       // 32px
+$space-10:  2.5rem;     // 40px
+$space-12:  3rem;       // 48px
+$space-16:  4rem;       // 64px
+$space-20:  5rem;       // 80px
+$space-24:  6rem;       // 96px
+
+
+// ── BORDER RADIUS ────────────────────────────────────────
+//
+// Consistent rounding — no mixing random px values.
+//
+$radius-sm:    4px;      // Tags, small badges
+$radius-md:    8px;      // Inputs, buttons, small cards
+$radius-lg:    12px;     // Standard cards, panels
+$radius-xl:    16px;     // Large cards, modals
+$radius-2xl:   24px;     // Feature hero sections
+$radius-full:  9999px;   // Pills, circular avatars, toggle buttons
+
+
+// ── BOX SHADOWS ──────────────────────────────────────────
+//
+// Layered shadows for realistic depth.
+// Think of elevation like layers of paper stacked.
+// sm = barely lifted, xl = floating above page (modal).
+//
+$shadow-sm:  0 1px 3px rgba(0,0,0,0.06),  0 1px 2px rgba(0,0,0,0.04);
+$shadow-md:  0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+$shadow-lg:  0 8px 24px rgba(0,0,0,0.09), 0 4px 8px rgba(0,0,0,0.06);
+$shadow-xl:  0 20px 48px rgba(0,0,0,0.12),0 8px 16px rgba(0,0,0,0.08);
+
+// Brand-colored glow — used on primary buttons for premium feel
+$shadow-primary: 0 4px 16px rgba($color-primary-rgb, 0.35);
+
+
+// ── TRANSITIONS ──────────────────────────────────────────
+//
+// Standardized animation durations — keep the app feel cohesive.
+// fast = instant feedback (color change on hover)
+// base = standard UI response
+// slow = bigger moves (modals appearing, panels sliding)
+// spring = playful bouncy effect for success states
+//
+$transition-fast:   all 0.15s ease;
+$transition-base:   all 0.2s ease;
+$transition-slow:   all 0.35s ease;
+$transition-spring: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+
+// ── LAYOUT DIMENSIONS ────────────────────────────────────
+//
+// Core structural measurements — change once, affects the whole layout.
+//
+$sidebar-width:       260px;    // Desktop expanded sidebar
+$sidebar-collapsed:   72px;     // Desktop icon-only collapsed sidebar
+$navbar-height:       64px;     // Top navigation bar height
+$content-max-width:   1280px;   // Maximum width of page content area
+$card-padding:        $space-6; // Standard inner padding for all cards
+
+
+// ── Z-INDEX SCALE ────────────────────────────────────────
+//
+// Prevents z-index wars — define ALL layers here in one place.
+// If something should be "on top", check here first.
+//
+$z-base:      1;     // Normal content
+$z-dropdown:  100;   // Dropdowns, select menus
+$z-sticky:    200;   // Sticky table headers
+$z-navbar:    300;   // Top navigation bar
+$z-sidebar:   400;   // Sidebar (over content)
+$z-overlay:   500;   // Modal backdrop/dimmer
+$z-modal:     600;   // Modal dialog itself
+$z-toast:     700;   // Toast notifications (always visible)
+
+
+// ── BREAKPOINTS ──────────────────────────────────────────
+//
+// Mobile-first breakpoints — used as arguments in _mixins.scss
+// We design for mobile first, then enhance for larger screens.
+//
+$bp-sm:   576px;    // Small phones landscape
+$bp-md:   768px;    // Tablets
+$bp-lg:   992px;    // Small laptops
+$bp-xl:   1200px;   // Standard desktops
+$bp-2xl:  1400px;   // Wide monitors

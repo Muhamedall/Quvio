@@ -1,0 +1,42 @@
+<!-- ============================================================
+empty-state.component.html
+============================================================ -->
+
+<div class="flex flex-col items-center justify-center gap-5 py-20 px-8 text-center animate-[fadeInUp_0.3s_ease_both]">
+
+  <!-- Icon with decorative rings -->
+  <div class="relative w-20 h-20 flex items-center justify-center">
+    <!-- Outer ring -->
+    <div class="absolute inset-0 rounded-full border border-gray-200 opacity-60"></div>
+    <!-- Inner filled circle -->
+    <div class="absolute w-14 h-14 rounded-full bg-gray-50 border border-gray-100"></div>
+    <!-- Icon itself -->
+    <svg
+      class="relative z-10 w-7 h-7 text-gray-400"
+      viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="1.5"
+      aria-hidden="true"
+    >
+      <path [attr.d]="currentPath" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <!-- Text block -->
+  <div class="space-y-1.5">
+    <h3 class="text-base font-semibold text-gray-900">{{ title }}</h3>
+    @if (subtitle) {
+      <p class="text-sm text-gray-500 max-w-xs leading-relaxed">{{ subtitle }}</p>
+    }
+  </div>
+
+  <!-- CTA button — only if actionLabel is provided -->
+  @if (actionLabel) {
+    <app-button [variant]="actionVariant" (click)="action.emit()">
+      {{ actionLabel }}
+    </app-button>
+  }
+
+  <!-- Optional custom slot for extra content -->
+  <ng-content></ng-content>
+
+</div>

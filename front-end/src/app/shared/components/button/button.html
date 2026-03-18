@@ -1,0 +1,59 @@
+<!-- ============================================================
+button.component.html
+All styling via Tailwind — no custom CSS file needed.
+ng-content projects the label text from the parent.
+============================================================ -->
+
+<button
+  [type]="type"
+  [class]="buttonClasses"
+  [disabled]="isDisabled"
+  [attr.aria-busy]="loading"
+>
+
+  <!-- Spinner — replaces icon when loading -->
+  @if (loading) {
+    <!-- SVG spinner using stroke-dasharray animation trick -->
+    <svg
+      class="animate-spin shrink-0"
+      [class]="size === 'sm' ? 'w-3 h-3' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4'"
+      viewBox="0 0 24 24" fill="none"
+      aria-hidden="true"
+    >
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+    </svg>
+  }
+
+  <!-- Left icon (shown when not loading) -->
+  @if (iconPath && iconPosition === 'left' && !loading) {
+    <svg
+      [class]="size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'"
+      class="shrink-0"
+      viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2"
+      aria-hidden="true"
+    >
+      <path [attr.d]="iconPath" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  }
+
+  <!-- Label text — content between the tags in parent template -->
+  <span class="whitespace-nowrap">
+    <ng-content></ng-content>
+  </span>
+
+  <!-- Right icon (shown when not loading) -->
+  @if (iconPath && iconPosition === 'right' && !loading) {
+    <svg
+      [class]="size === 'sm' ? 'w-3.5 h-3.5' : 'w-4 h-4'"
+      class="shrink-0"
+      viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2"
+      aria-hidden="true"
+    >
+      <path [attr.d]="iconPath" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  }
+
+</button>
