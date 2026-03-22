@@ -1,0 +1,81 @@
+<!-- client-list.component.html -->
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Clients</h1>
+      <p class="text-sm text-gray-500 mt-0.5">{{ clients().length }} clients total</p>
+    </div>
+    <app-button variant="primary" iconPath="M12 4v16m8-8H4" (click)="openCreate()">
+      Add Client
+    </app-button>
+  </div>
+
+  <!-- Table -->
+  <app-table
+    [columns]="columns"
+    [loading]="loading()"
+    [empty]="!loading() && clients().length === 0"
+    emptyTitle="No clients yet"
+    emptySubtitle="Add your first client to start sending invoices."
+  >
+    @for (client of clients(); track client.id) {
+      <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
+
+        <!-- Name + initials -->
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+              <span class="text-xs font-bold text-indigo-600">{{ client.initials }}</span>
+            </div>
+            <span class="text-sm font-medium text-gray-900">{{ client.name }}</span>
+          </div>
+        </td>
+
+        <!-- Company -->
+        <td class="px-4 py-3 text-sm text-gray-600">
+          {{ client.company ?? '—' }}
+        </td>
+
+        <!-- Email -->
+        <td class="px-4 py-3 text-sm text-gray-600">{{ client.email }}</td>
+
+        <!-- Phone -->
+        <td class="px-4 py-3 text-sm text-gray-600">{{ client.phone ?? '—' }}</td>
+
+        <!-- Actions -->
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            <button
+              class="text-xs text-indigo-500 hover:text-indigo-700 font-medium"
+              (click)="openEdit(client)">
+              Edit
+            </button>
+            <button
+              class="text-xs text-red-400 hover:text-red-600 font-medium"
+              (click)="delete(client)">
+              Delete
+            </button>
+          </div>
+        </td>
+
+      </tr>
+    }
+  </app-table>
+
+</div>
+
+<!-- Create / Edit Modal -->
+<app-modal
+  [isOpen]="showModal()"
+  [title]="editClient() ? 'Edit Client' : 'New Client'"
+  size="md"
+  (closed)="closeModal()"
+>
+  <app-client-form
+    [client]="editClient()"
+    (saved)="onSaved()"
+    (cancelled)="closeModal()"
+  />
+</app-modal>

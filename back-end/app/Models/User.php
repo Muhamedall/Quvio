@@ -4,6 +4,8 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,4 +31,36 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    // ── RELATIONSHIPS ─────────────────────────────────────
+    // These are the methods Laravel calls when you do:
+    // auth()->user()->clients()
+    // auth()->user()->quotes()
+    // auth()->user()->invoices()
+
+    public function clients(): HasMany
+    {
+        return $this->hasMany(Client::class);
+    }
+
+     public function quotes(): HasMany
+    {
+        return $this->hasMany(Quote::class);
+    }
+
+     public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
+     // ── ACCESSOR ──────────────────────────────────────────
+    protected function initials(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => strtoupper(substr($this->name, 0, 1))
+        );
+    }
+ 
+
+
 }

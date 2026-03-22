@@ -23,7 +23,7 @@ import {
 } from '@angular/forms';
 
 import { AuthService }                    from '../../../core/auth';
-import { ButtonComponent, CardComponent } from '../../../components';
+import { ButtonComponent, CardComponent } from '../../../shared/components';
 
 // ── CUSTOM VALIDATOR ─────────────────────────────────────
 // Pure function outside the class — checks password === confirm

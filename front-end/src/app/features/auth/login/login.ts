@@ -37,7 +37,7 @@ import {
 } from '@angular/forms';
 
 import { AuthService }                   from '../../../core/auth/auth.service';
-import { ButtonComponent, CardComponent } from '../../../components';
+import { ButtonComponent, CardComponent } from '../../../shared/components';
 
 @Component({
   selector:    'app-login',

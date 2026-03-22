@@ -1,0 +1,68 @@
+<!-- recent-activity.component.html -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+  <!-- Recent Invoices -->
+  <div class="bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <h3 class="text-sm font-semibold text-gray-900">Recent Invoices</h3>
+      <a routerLink="/invoices"
+         class="text-xs text-indigo-500 font-medium hover:underline">
+        View all →
+      </a>
+    </div>
+
+    @if (recentInvoices.length === 0) {
+      <p class="text-sm text-gray-400 text-center py-8">No invoices yet</p>
+    } @else {
+      <ul class="divide-y divide-gray-50">
+        @for (inv of recentInvoices; track inv.id) {
+          <li class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">{{ inv.client_name }}</p>
+              <p class="text-xs text-gray-400 mt-0.5">{{ inv.invoice_number }} · {{ inv.due_date }}</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0 ml-3">
+              <span class="text-sm font-semibold text-gray-800 font-mono">
+                {{ format(inv.total) }}
+              </span>
+              <app-badge [status]="inv.status">{{ inv.status_label }}</app-badge>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <!-- Recent Quotes -->
+  <div class="bg-white rounded-xl shadow-md overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <h3 class="text-sm font-semibold text-gray-900">Recent Quotes</h3>
+      <a routerLink="/quotes"
+         class="text-xs text-indigo-500 font-medium hover:underline">
+        View all →
+      </a>
+    </div>
+
+    @if (recentQuotes.length === 0) {
+      <p class="text-sm text-gray-400 text-center py-8">No quotes yet</p>
+    } @else {
+      <ul class="divide-y divide-gray-50">
+        @for (q of recentQuotes; track q.id) {
+          <li class="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-900 truncate">{{ q.client_name }}</p>
+              <p class="text-xs text-gray-400 mt-0.5">{{ q.quote_number }} · {{ q.created_at }}</p>
+            </div>
+            <div class="flex items-center gap-3 shrink-0 ml-3">
+              <span class="text-sm font-semibold text-gray-800 font-mono">
+                {{ format(q.total) }}
+              </span>
+              <app-badge [status]="q.status">{{ q.status_label }}</app-badge>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+</div>
