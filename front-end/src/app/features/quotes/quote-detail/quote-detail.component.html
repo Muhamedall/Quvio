@@ -1,0 +1,204 @@
+<!-- quote-detail.component.html -->
+
+@if (loading()) {
+  <div class="flex items-center justify-center min-h-96">
+    <app-loader size="lg" text="Loading quote..." />
+  </div>
+
+} @else if (quote()) {
+  <div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- ── Header ── -->
+    <div class="flex items-start justify-between gap-4">
+      <div class="flex items-center gap-4">
+        <button
+          class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100
+                 rounded-lg transition-colors"
+          (click)="goBack()">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
+              {{ quote()!.quote_number }}
+            </h1>
+            <app-badge [status]="quote()!.status">{{ quote()!.status_label }}</app-badge>
+            @if (quote()!.is_converted) {
+              <span class="inline-flex items-center gap-1 text-xs font-semibold
+                           text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full">
+                ✓ Converted to Invoice
+              </span>
+            }
+          </div>
+          <p class="text-sm text-gray-500 mt-0.5">
+            Created {{ quote()!.created_at }}
+            @if (quote()!.valid_until) {
+              · Valid until {{ quote()!.valid_until }}
+            }
+          </p>
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="flex items-center gap-2 shrink-0">
+        <app-button variant="secondary" size="sm" (click)="goToPreview()">
+          Preview
+        </app-button>
+        @if (quote()!.status === 'draft') {
+          <app-button variant="secondary" size="sm" (click)="goToEdit()">
+            Edit
+          </app-button>
+          <app-button
+            variant="primary" size="sm"
+            [loading]="sending()"
+            (click)="sendQuote()">
+            Send to Client
+          </app-button>
+        }
+        @if (canConvert) {
+          <app-button
+            variant="primary" size="sm"
+            [loading]="converting()"
+            (click)="showConfirm.set(true)">
+            Convert to Invoice
+          </app-button>
+        }
+      </div>
+    </div>
+
+    <!-- Success message -->
+    @if (actionMsg()) {
+      <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg
+                  text-sm text-emerald-700 font-medium">
+        ✓ {{ actionMsg() }}
+      </div>
+    }
+
+    <!-- ── Client + Summary row ── -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+      <!-- Client info -->
+      <app-card padding="md" class="sm:col-span-2">
+        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Client
+        </h3>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center
+                      justify-center shrink-0">
+            <span class="text-sm font-bold text-indigo-600">
+              {{ (quote()!.client?.company ?? quote()!.client?.name ?? 'C').charAt(0).toUpperCase() }}
+            </span>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-gray-900">
+              {{ quote()!.client?.company ?? quote()!.client?.name }}
+            </p>
+            <p class="text-sm text-gray-500">{{ quote()!.client?.email }}</p>
+            @if (quote()!.client?.phone) {
+              <p class="text-sm text-gray-500">{{ quote()!.client?.phone }}</p>
+            }
+          </div>
+        </div>
+        @if (quote()!.notes) {
+          <div class="mt-3 pt-3 border-t border-gray-100">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Notes</p>
+            <p class="text-sm text-gray-700">{{ quote()!.notes }}</p>
+          </div>
+        }
+      </app-card>
+
+      <!-- Amount summary -->
+      <app-card padding="md">
+        <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          Summary
+        </h3>
+        <div class="space-y-2">
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Subtotal</span>
+            <span class="font-medium text-gray-900 font-mono">
+              {{ formatCurrency(quote()!.subtotal) }}
+            </span>
+          </div>
+          <div class="flex justify-between text-sm">
+            <span class="text-gray-500">Tax ({{ quote()!.tax_rate }}%)</span>
+            <span class="font-medium text-gray-900 font-mono">
+              {{ formatCurrency(quote()!.total - quote()!.subtotal) }}
+            </span>
+          </div>
+          <div class="flex justify-between text-base font-bold pt-2 border-t border-gray-100">
+            <span class="text-gray-900">Total</span>
+            <span class="text-indigo-600 font-mono text-lg">
+              {{ formatCurrency(quote()!.total) }}
+            </span>
+          </div>
+        </div>
+      </app-card>
+
+    </div>
+
+    <!-- ── Line Items ── -->
+    <app-card title="Line Items" padding="none">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-100">
+            <th class="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              Description
+            </th>
+            <th class="text-center px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-24">
+              Qty
+            </th>
+            <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">
+              Unit Price
+            </th>
+            <th class="text-right px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-32">
+              Subtotal
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of quote()!.items; track item.id) {
+            <tr class="border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+              <td class="px-5 py-3.5 text-sm text-gray-900">{{ item.description }}</td>
+              <td class="px-5 py-3.5 text-sm text-gray-600 text-center">{{ item.quantity }}</td>
+              <td class="px-5 py-3.5 text-sm text-gray-600 text-right font-mono">
+                {{ formatCurrency(item.unit_price) }}
+              </td>
+              <td class="px-5 py-3.5 text-sm font-semibold text-gray-900 text-right font-mono">
+                {{ formatCurrency(item.subtotal) }}
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="border-t-2 border-gray-200 bg-gray-50">
+            <td colspan="3" class="px-5 py-3.5 text-sm font-bold text-gray-900 text-right">
+              Total
+            </td>
+            <td class="px-5 py-3.5 text-base font-bold text-indigo-600 text-right font-mono">
+              {{ formatCurrency(quote()!.total) }}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </app-card>
+
+  </div>
+}
+
+<!-- ── Convert Confirmation Modal ── -->
+<app-modal
+  [isOpen]="showConfirm()"
+  title="Convert to Invoice"
+  subtitle="This will create a new invoice from this quote and mark the quote as approved."
+  size="sm"
+  (closed)="showConfirm.set(false)"
+>
+  <div class="flex items-center justify-end gap-3 pt-2">
+    <app-button variant="secondary" (click)="showConfirm.set(false)">Cancel</app-button>
+    <app-button variant="primary" [loading]="converting()" (click)="convertToInvoice()">
+      Yes, Convert
+    </app-button>
+  </div>
+</app-modal>

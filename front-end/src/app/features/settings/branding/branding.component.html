@@ -1,0 +1,214 @@
+<!-- branding.component.html -->
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <!-- Header + tabs -->
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Manage your account and preferences</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex items-center gap-1 border-b border-gray-200">
+    <a routerLink="/settings/profile"
+       routerLinkActive="border-b-2 border-indigo-500 text-indigo-600"
+       class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+      Profile
+    </a>
+    <a routerLink="/settings/branding"
+       routerLinkActive="border-b-2 border-indigo-500 text-indigo-600"
+       class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+      Branding
+    </a>
+  </div>
+
+  @if (loading()) {
+    <app-loader text="Loading branding settings..." />
+  } @else {
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-6">
+
+      @if (msg()) {
+        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg
+                    text-sm text-emerald-700 font-medium">
+          ✓ {{ msg() }}
+        </div>
+      }
+      @if (error()) {
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {{ error() }}
+        </div>
+      }
+
+      <!-- ── Company Info ── -->
+      <app-card title="Company Information" padding="md">
+        <p class="text-sm text-gray-500 mb-4">
+          This information appears on your invoices and quotes.
+        </p>
+
+        <div class="space-y-4">
+
+          <!-- Company name -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Company Name</label>
+            <input formControlName="company_name" type="text"
+              placeholder="Your Company Ltd."
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all" />
+          </div>
+
+          <!-- Email + Phone -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-gray-700">Company Email</label>
+              <input formControlName="company_email" type="email"
+                placeholder="contact@yourcompany.com"
+                class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                       outline-none focus:border-indigo-400 focus:ring-2
+                       focus:ring-indigo-100 transition-all"
+                [class.border-red-400]="form.get('company_email')?.invalid && form.get('company_email')?.touched" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-gray-700">Company Phone</label>
+              <input formControlName="company_phone" type="text"
+                placeholder="+33 1 23 45 67 89"
+                class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                       outline-none focus:border-indigo-400 focus:ring-2
+                       focus:ring-indigo-100 transition-all" />
+            </div>
+          </div>
+
+          <!-- Website -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Website</label>
+            <input formControlName="company_website" type="text"
+              placeholder="https://yourcompany.com"
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all" />
+          </div>
+
+          <!-- Address -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Company Address</label>
+            <textarea formControlName="company_address" rows="2"
+              placeholder="123 Business Street, 75001 Paris, France"
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all resize-none">
+            </textarea>
+          </div>
+
+        </div>
+      </app-card>
+
+      <!-- ── Invoice Settings ── -->
+      <app-card title="Invoice & Quote Settings" padding="md">
+        <p class="text-sm text-gray-500 mb-4">
+          Customize how your invoice and quote numbers are generated.
+        </p>
+
+        <div class="space-y-4">
+
+          <!-- Prefixes -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-gray-700">Invoice Prefix</label>
+              <div class="flex items-center gap-2">
+                <input formControlName="invoice_prefix" type="text"
+                  placeholder="INV" maxlength="10"
+                  class="w-24 px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all text-center font-mono" />
+                <span class="text-sm text-gray-400">
+                  → {{ form.get('invoice_prefix')?.value || 'INV' }}-2025-001
+                </span>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-sm font-medium text-gray-700">Quote Prefix</label>
+              <div class="flex items-center gap-2">
+                <input formControlName="quote_prefix" type="text"
+                  placeholder="QUO" maxlength="10"
+                  class="w-24 px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all text-center font-mono" />
+                <span class="text-sm text-gray-400">
+                  → {{ form.get('quote_prefix')?.value || 'QUO' }}-2025-001
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Default invoice notes -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">
+              Default Invoice Notes
+            </label>
+            <textarea formControlName="invoice_notes" rows="3"
+              placeholder="Payment terms, bank details, thank you message..."
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all resize-none">
+            </textarea>
+            <p class="text-xs text-gray-400">
+              This text appears at the bottom of every invoice.
+            </p>
+          </div>
+
+        </div>
+      </app-card>
+
+      <!-- Preview card -->
+      <app-card padding="md">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">
+          PDF Header Preview
+        </h3>
+        <div class="bg-indigo-600 rounded-lg px-6 py-4 text-white">
+          <div class="flex items-start justify-between">
+            <div>
+              <p class="font-bold text-lg">
+                {{ form.get('company_name')?.value || 'Your Company' }}
+              </p>
+              @if (form.get('company_address')?.value) {
+                <p class="text-indigo-200 text-xs mt-0.5">
+                  {{ form.get('company_address')?.value }}
+                </p>
+              }
+              @if (form.get('company_email')?.value) {
+                <p class="text-indigo-200 text-xs">
+                  {{ form.get('company_email')?.value }}
+                </p>
+              }
+              @if (form.get('company_phone')?.value) {
+                <p class="text-indigo-200 text-xs">
+                  {{ form.get('company_phone')?.value }}
+                </p>
+              }
+            </div>
+            <div class="text-right">
+              <p class="font-bold text-xl">INVOICE</p>
+              <p class="text-indigo-200 text-xs">
+                {{ form.get('invoice_prefix')?.value || 'INV' }}-2025-001
+              </p>
+            </div>
+          </div>
+        </div>
+        <p class="text-xs text-gray-400 mt-2">
+          This is how your company info will appear on generated PDFs.
+        </p>
+      </app-card>
+
+      <!-- Save button -->
+      <div class="flex justify-end">
+        <app-button variant="primary" type="submit" [loading]="saving()">
+          Save Branding
+        </app-button>
+      </div>
+
+    </form>
+
+  }
+
+</div>

@@ -1,0 +1,173 @@
+<!-- profile.component.html -->
+<div class="max-w-2xl mx-auto space-y-6">
+
+  <!-- Page header with tabs -->
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Settings</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Manage your account and preferences</p>
+  </div>
+
+  <!-- Tabs -->
+  <div class="flex items-center gap-1 border-b border-gray-200">
+    <a routerLink="/settings/profile" routerLinkActive="border-b-2 border-indigo-500 text-indigo-600"
+       class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+      Profile
+    </a>
+    <a routerLink="/settings/branding" routerLinkActive="border-b-2 border-indigo-500 text-indigo-600"
+       class="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
+      Branding
+    </a>
+  </div>
+
+  <!-- ── Profile Info ── -->
+  <app-card title="Personal Information" padding="md">
+    <p class="text-sm text-gray-500 mb-4">Update your name and email address.</p>
+
+    @if (profileMsg()) {
+      <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg
+                  text-sm text-emerald-700 font-medium">
+        ✓ {{ profileMsg() }}
+      </div>
+    }
+    @if (profileError()) {
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {{ profileError() }}
+      </div>
+    }
+
+    <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate class="space-y-4">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <!-- Name -->
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-gray-700">Full Name *</label>
+          <input formControlName="name" type="text" placeholder="John Doe"
+            class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                   outline-none focus:border-indigo-400 focus:ring-2
+                   focus:ring-indigo-100 transition-all"
+            [class.border-red-400]="profileForm.get('name')?.invalid && profileForm.get('name')?.touched" />
+          @if (profileForm.get('name')?.invalid && profileForm.get('name')?.touched) {
+            <p class="text-xs text-red-500">Name is required</p>
+          }
+        </div>
+
+        <!-- Email -->
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-gray-700">Email *</label>
+          <input formControlName="email" type="email" placeholder="john@example.com"
+            class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                   outline-none focus:border-indigo-400 focus:ring-2
+                   focus:ring-indigo-100 transition-all"
+            [class.border-red-400]="profileForm.get('email')?.invalid && profileForm.get('email')?.touched" />
+          @if (profileForm.get('email')?.invalid && profileForm.get('email')?.touched) {
+            <p class="text-xs text-red-500">Valid email is required</p>
+          }
+        </div>
+
+      </div>
+
+      <div class="flex justify-end">
+        <app-button variant="primary" type="submit" [loading]="savingProfile()">
+          Save Profile
+        </app-button>
+      </div>
+
+    </form>
+  </app-card>
+
+  <!-- ── Change Password ── -->
+  <app-card title="Change Password" padding="md">
+    <p class="text-sm text-gray-500 mb-4">
+      Use a strong password with at least 8 characters.
+    </p>
+
+    @if (passwordMsg()) {
+      <div class="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg
+                  text-sm text-emerald-700 font-medium">
+        ✓ {{ passwordMsg() }}
+      </div>
+    }
+    @if (passwordError()) {
+      <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        {{ passwordError() }}
+      </div>
+    }
+
+    <form [formGroup]="passwordForm" (ngSubmit)="savePassword()" novalidate class="space-y-4">
+
+      <!-- Current password -->
+      <div class="space-y-1.5">
+        <label class="block text-sm font-medium text-gray-700">Current Password *</label>
+        <input formControlName="current_password"
+          [type]="showPassword() ? 'text' : 'password'"
+          placeholder="Enter current password"
+          class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                 outline-none focus:border-indigo-400 focus:ring-2
+                 focus:ring-indigo-100 transition-all"
+          [class.border-red-400]="passwordForm.get('current_password')?.invalid && passwordForm.get('current_password')?.touched" />
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <!-- New password -->
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-gray-700">New Password *</label>
+          <input formControlName="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            placeholder="Min 8 characters"
+            class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                   outline-none focus:border-indigo-400 focus:ring-2
+                   focus:ring-indigo-100 transition-all"
+            [class.border-red-400]="passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched" />
+          @if (passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched) {
+            <p class="text-xs text-red-500">Minimum 8 characters</p>
+          }
+        </div>
+
+        <!-- Confirm password -->
+        <div class="space-y-1.5">
+          <label class="block text-sm font-medium text-gray-700">Confirm Password *</label>
+          <input formControlName="password_confirmation"
+            [type]="showPassword() ? 'text' : 'password'"
+            placeholder="Repeat new password"
+            class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                   outline-none focus:border-indigo-400 focus:ring-2
+                   focus:ring-indigo-100 transition-all" />
+        </div>
+
+      </div>
+
+      <!-- Show password toggle -->
+      <label class="flex items-center gap-2 cursor-pointer w-fit">
+        <input type="checkbox" class="rounded"
+          [checked]="showPassword()"
+          (change)="showPassword.set(!showPassword())" />
+        <span class="text-sm text-gray-600">Show passwords</span>
+      </label>
+
+      <div class="flex justify-end">
+        <app-button variant="primary" type="submit" [loading]="savingPassword()">
+          Change Password
+        </app-button>
+      </div>
+
+    </form>
+  </app-card>
+
+  <!-- ── Danger Zone ── -->
+  <app-card padding="md">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-sm font-semibold text-red-600">Danger Zone</h3>
+        <p class="text-xs text-gray-500 mt-0.5">
+          These actions are irreversible. Please be careful.
+        </p>
+      </div>
+      <app-button variant="danger-outline" size="sm">
+        Delete Account
+      </app-button>
+    </div>
+  </app-card>
+
+</div>

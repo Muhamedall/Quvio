@@ -1,0 +1,127 @@
+<!-- invoice-list.component.html -->
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Invoices</h1>
+      <p class="text-sm text-gray-500 mt-0.5">
+        {{ filtered().length }} invoices
+        @if (outstanding() > 0) {
+          · <span class="text-amber-600 font-medium">{{ formatCurrency(outstanding()) }} outstanding</span>
+        }
+      </p>
+    </div>
+    <app-button variant="primary" iconPath="M12 4v16m8-8H4" (click)="goToNew()">
+      New Invoice
+    </app-button>
+  </div>
+
+  <!-- Status filter tabs -->
+  <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+    @for (s of statuses; track s.value) {
+      <button
+        class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150"
+        [class.bg-white]="filterStatus() === s.value"
+        [class.shadow-sm]="filterStatus() === s.value"
+        [class.text-gray-900]="filterStatus() === s.value"
+        [class.text-gray-500]="filterStatus() !== s.value"
+        (click)="setFilter(s.value)"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Table -->
+  <app-table
+    [columns]="columns"
+    [loading]="loading()"
+    [empty]="!loading() && filtered().length === 0"
+    emptyTitle="No invoices found"
+    emptySubtitle="Create your first invoice to start getting paid."
+  >
+    @for (invoice of filtered(); track invoice.id) {
+      <tr
+        class="hover:bg-gray-50 border-b border-gray-100 last:border-0
+               transition-colors cursor-pointer"
+        [class.bg-red-50]="invoice.status === 'overdue'"
+        (click)="goToDetail(invoice.id)"
+      >
+        <!-- Invoice number -->
+        <td class="px-4 py-3">
+          <span class="text-sm font-semibold text-indigo-600">
+            {{ invoice.invoice_number }}
+          </span>
+        </td>
+
+        <!-- Client -->
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-full bg-indigo-100 flex items-center
+                        justify-center shrink-0">
+              <span class="text-xs font-bold text-indigo-600">
+                {{ (invoice.client?.company ?? invoice.client?.name ?? 'C').charAt(0).toUpperCase() }}
+              </span>
+            </div>
+            <span class="text-sm text-gray-900 truncate max-w-32">
+              {{ invoice.client?.company ?? invoice.client?.name ?? '—' }}
+            </span>
+          </div>
+        </td>
+
+        <!-- Total -->
+        <td class="px-4 py-3 text-right">
+          <span class="text-sm font-semibold text-gray-900 font-mono">
+            {{ formatCurrency(invoice.total) }}
+          </span>
+        </td>
+
+        <!-- Due date -->
+        <td class="px-4 py-3">
+          <div class="flex flex-col">
+            <span class="text-sm text-gray-700">{{ invoice.due_date }}</span>
+            @if (isDueSoon(invoice)) {
+              <span class="text-xs text-amber-600 font-medium">
+                Due in {{ invoice.days_until_due }} day(s)
+              </span>
+            }
+            @if (invoice.status === 'overdue') {
+              <span class="text-xs text-red-600 font-medium">
+                {{ -invoice.days_until_due }} days overdue
+              </span>
+            }
+          </div>
+        </td>
+
+        <!-- Status badge -->
+        <td class="px-4 py-3">
+          <app-badge [status]="invoice.status">{{ invoice.status_label }}</app-badge>
+        </td>
+
+        <!-- Actions -->
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            @if (invoice.status !== 'paid') {
+              <button
+                class="text-xs text-indigo-500 hover:text-indigo-700 font-medium"
+                (click)="goToEdit(invoice.id, $event)">
+                Edit
+              </button>
+              <button
+                class="text-xs text-red-400 hover:text-red-600 font-medium"
+                (click)="delete(invoice, $event)">
+                Delete
+              </button>
+            }
+            @if (invoice.status === 'paid') {
+              <span class="text-xs text-emerald-600 font-semibold">✓ Paid</span>
+            }
+          </div>
+        </td>
+
+      </tr>
+    }
+  </app-table>
+
+</div>

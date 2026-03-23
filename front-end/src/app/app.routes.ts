@@ -36,7 +36,7 @@ export const routes: Routes = [
         path:  'dashboard',
         title: 'Dashboard — Quvio',
         loadComponent: () =>
-          import('./features/dashboard/dashboard/dashboard')
+          import('./features/dashboard/dashboard.component')
             .then((m) => m.DashboardComponent),
       },
 

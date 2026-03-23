@@ -44,6 +44,11 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InvoiceController;
 use App\Http\Controllers\Api\QuoteController;
+use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\PdfController;
+
+
+
 use Illuminate\Support\Facades\Route;
 
 // ════════════════════════════════════════════════════════
@@ -107,8 +112,22 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // POST /api/invoices/{invoice}/payment-link → generate Stripe link
     Route::post('invoices/{invoice}/payment-link', [InvoiceController::class, 'generatePaymentLink']);
+// Settings
+    Route::prefix('settings')->group(function () {
+    Route::get ('profile',  [SettingsController::class, 'getProfile']);
+    Route::put ('profile',  [SettingsController::class, 'updateProfile']);
+    Route::put ('password', [SettingsController::class, 'updatePassword']);
+    Route::get ('branding', [SettingsController::class, 'getBranding']);
+    Route::put ('branding', [SettingsController::class, 'updateBranding']);
+});
+
+
+// PDF downloads
+Route::get('invoices/{invoice}/pdf', [PdfController::class, 'invoicePdf']);
+Route::get('quotes/{quote}/pdf',     [PdfController::class, 'quotePdf']);
 
 });
+
 
 // ════════════════════════════════════════════════════════
 // STRIPE WEBHOOK — no auth (Stripe signs requests differently)

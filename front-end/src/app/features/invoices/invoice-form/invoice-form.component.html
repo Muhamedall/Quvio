@@ -1,0 +1,190 @@
+<!-- invoice-form.component.html -->
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">
+        {{ isEdit ? 'Edit Invoice' : 'New Invoice' }}
+      </h1>
+      <p class="text-sm text-gray-500 mt-0.5">
+        {{ isEdit ? 'Update invoice details' : 'Create a new invoice for your client' }}
+      </p>
+    </div>
+    <app-button variant="secondary" (click)="cancel()">Cancel</app-button>
+  </div>
+
+  @if (fetching()) {
+    <app-loader text="Loading invoice..." />
+  } @else {
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="space-y-6">
+
+      @if (error()) {
+        <div class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {{ error() }}
+        </div>
+      }
+
+      <!-- ── Invoice Details ── -->
+      <app-card title="Invoice Details" padding="md">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+
+          <!-- Client -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Client *</label>
+            <select formControlName="client_id"
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all bg-white"
+              [class.border-red-400]="form.get('client_id')?.invalid && form.get('client_id')?.touched">
+              <option value="">Select a client...</option>
+              @for (client of clients(); track client.id) {
+                <option [value]="client.id">{{ client.company ?? client.name }}</option>
+              }
+            </select>
+            @if (form.get('client_id')?.invalid && form.get('client_id')?.touched) {
+              <p class="text-xs text-red-500">Please select a client</p>
+            }
+          </div>
+
+          <!-- Due date -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Due Date *</label>
+            <input formControlName="due_date" type="date"
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all"
+              [class.border-red-400]="form.get('due_date')?.invalid && form.get('due_date')?.touched" />
+            @if (form.get('due_date')?.invalid && form.get('due_date')?.touched) {
+              <p class="text-xs text-red-500">Due date is required</p>
+            }
+          </div>
+
+          <!-- Tax rate -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
+            <input formControlName="tax_rate" type="number" min="0" max="100"
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all" />
+          </div>
+
+          <!-- Notes -->
+          <div class="space-y-1.5">
+            <label class="block text-sm font-medium text-gray-700">Notes</label>
+            <input formControlName="notes" type="text" placeholder="Payment terms, notes..."
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all" />
+          </div>
+
+        </div>
+      </app-card>
+
+      <!-- ── Line Items ── -->
+      <app-card title="Line Items" padding="md">
+        <div class="space-y-3 mt-1" formArrayName="items">
+
+          <!-- Column headers -->
+          <div class="grid grid-cols-12 gap-3 px-1">
+            <div class="col-span-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</div>
+            <div class="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-center">Qty</div>
+            <div class="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Unit Price</div>
+            <div class="col-span-2 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Subtotal</div>
+          </div>
+
+          <!-- Item rows -->
+          @for (item of items.controls; track $index) {
+            <div [formGroupName]="$index"
+              class="grid grid-cols-12 gap-3 items-start bg-gray-50 p-3 rounded-lg">
+
+              <div class="col-span-6">
+                <input formControlName="description" type="text" placeholder="Service description"
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all bg-white"
+                  [class.border-red-400]="item.get('description')?.invalid && item.get('description')?.touched" />
+              </div>
+
+              <div class="col-span-2">
+                <input formControlName="quantity" type="number" min="0.01" step="0.5"
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all bg-white text-center" />
+              </div>
+
+              <div class="col-span-2">
+                <input formControlName="unit_price" type="number" min="0" step="0.01"
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all bg-white text-right" />
+              </div>
+
+              <div class="col-span-2 flex items-center justify-end gap-2 pt-2">
+                <span class="text-sm font-semibold text-gray-900 font-mono">
+                  {{ formatCurrency(itemSubtotal(item)) }}
+                </span>
+                @if (items.length > 1) {
+                  <button type="button"
+                    class="text-red-400 hover:text-red-600 transition-colors shrink-0"
+                    (click)="removeItem($index)">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2">
+                      <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                }
+              </div>
+
+            </div>
+          }
+
+          <!-- Add item -->
+          <button type="button"
+            class="flex items-center gap-2 text-sm text-indigo-500
+                   hover:text-indigo-700 font-medium transition-colors"
+            (click)="addItem()">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5">
+              <path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Add Item
+          </button>
+
+        </div>
+
+        <!-- Totals -->
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <div class="flex justify-end">
+            <div class="space-y-1.5 w-64">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Subtotal</span>
+                <span class="font-medium text-gray-900 font-mono">{{ formatCurrency(subtotal()) }}</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Tax ({{ form.get('tax_rate')?.value }}%)</span>
+                <span class="font-medium text-gray-900 font-mono">{{ formatCurrency(taxAmount()) }}</span>
+              </div>
+              <div class="flex justify-between text-base font-bold pt-1 border-t border-gray-200">
+                <span class="text-gray-900">Total</span>
+                <span class="text-indigo-600 font-mono">{{ formatCurrency(total()) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </app-card>
+
+      <!-- Submit -->
+      <div class="flex items-center justify-end gap-3">
+        <app-button variant="secondary" type="button" (click)="cancel()">Cancel</app-button>
+        <app-button variant="primary" type="submit" [loading]="loading()">
+          {{ isEdit ? 'Save Changes' : 'Create Invoice' }}
+        </app-button>
+      </div>
+
+    </form>
+  }
+
+</div>

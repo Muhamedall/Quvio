@@ -1,0 +1,60 @@
+<!-- main-layout.component.html
+
+FIXED STRUCTURE:
+  ┌─────────────┬──────────────────────────────────────┐
+  │             │  NAVBAR (fixed top, 64px)             │
+  │  SIDEBAR    ├──────────────────────────────────────┤
+  │  (fixed,    │                                      │
+  │   full      │  PAGE CONTENT (scrollable)           │
+  │   height)   │  <router-outlet>                     │
+  │             │                                      │
+  │             ├──────────────────────────────────────┤
+  │             │  FOOTER                              │
+  └─────────────┴──────────────────────────────────────┘
+
+KEY FIXES:
+  1. Sidebar is fixed — never scrolls
+  2. Main area uses margin-left to avoid sidebar overlap
+  3. Only the <main> content area scrolls
+  4. Navbar is sticky at the top of the content area
+-->
+
+<div class="min-h-screen bg-gray-50">
+
+  <!-- ── Mobile overlay backdrop ──────────────────── -->
+  @if (sidebarOpen()) {
+    <div
+      class="fixed inset-0 z-20 bg-black/50 backdrop-blur-sm lg:hidden"
+      (click)="close()"
+      aria-hidden="true"
+    ></div>
+  }
+
+  <!-- ── Sidebar — FIXED position ─────────────────── -->
+  <!-- Fixed to the left, full height, never scrolls   -->
+  <app-sidebar
+    [isOpen]="sidebarOpen()"
+    (closed)="close()"
+  />
+
+  <!-- ── Main area — offset by sidebar width ───────── -->
+  <!-- lg:ml-64 = push content right by sidebar width  -->
+  <!-- On mobile: ml-0 (sidebar overlays instead)      -->
+  <div class="lg:ml-64 flex flex-col min-h-screen">
+
+    <!-- ── Navbar — sticky at top ──────────────────── -->
+    <div class="sticky top-0 z-10">
+      <app-navbar (menuToggled)="toggle()" />
+    </div>
+
+    <!-- ── Page content — only this scrolls ─────────── -->
+    <main class="flex-1 p-6 lg:p-8">
+      <router-outlet />
+    </main>
+
+    <!-- ── Footer ────────────────────────────────────── -->
+    <app-footer />
+
+  </div>
+
+</div>

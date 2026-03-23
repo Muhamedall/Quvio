@@ -45,4 +45,12 @@ export class QuoteService extends ApiService {
   convert(id: number): Observable<{ message: string; invoice: Invoice }> {
     return this.action(`${this.path}/${id}/convert`);
   }
+
+ // Download pdf 
+ downloadPdf(id: number): Observable<Blob> {
+  return this.http.get(
+    `${this.baseUrl}/quotes/${id}/pdf`,
+    { responseType: 'blob' }
+  );
+}
 }

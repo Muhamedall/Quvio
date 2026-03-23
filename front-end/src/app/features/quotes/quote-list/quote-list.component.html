@@ -1,0 +1,102 @@
+<!-- quote-list.component.html -->
+<div class="space-y-6">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Quotes</h1>
+      <p class="text-sm text-gray-500 mt-0.5">{{ filtered().length }} quotes</p>
+    </div>
+    <app-button variant="primary" iconPath="M12 4v16m8-8H4" (click)="goToNew()">
+      New Quote
+    </app-button>
+  </div>
+
+  <!-- Status filter tabs -->
+  <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-lg w-fit">
+    @for (s of statuses; track s.value) {
+      <button
+        class="px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-150"
+        [class.bg-white]="filterStatus() === s.value"
+        [class.shadow-sm]="filterStatus() === s.value"
+        [class.text-gray-900]="filterStatus() === s.value"
+        [class.text-gray-500]="filterStatus() !== s.value"
+        [class.hover:text-gray-700]="filterStatus() !== s.value"
+        (click)="setFilter(s.value)"
+      >
+        {{ s.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Table -->
+  <app-table
+    [columns]="columns"
+    [loading]="loading()"
+    [empty]="!loading() && filtered().length === 0"
+    emptyTitle="No quotes found"
+    emptySubtitle="Create your first quote to get started."
+  >
+    @for (quote of filtered(); track quote.id) {
+      <tr
+        class="hover:bg-gray-50 border-b border-gray-100 last:border-0
+               transition-colors cursor-pointer"
+        (click)="goToDetail(quote.id)"
+      >
+        <!-- Quote number -->
+        <td class="px-4 py-3">
+          <span class="text-sm font-semibold text-indigo-600">
+            {{ quote.quote_number }}
+          </span>
+        </td>
+
+        <!-- Client -->
+        <td class="px-4 py-3">
+          <span class="text-sm text-gray-900">
+            {{ quote.client?.company ?? quote.client?.name ?? '—' }}
+          </span>
+        </td>
+
+        <!-- Total -->
+        <td class="px-4 py-3 text-right">
+          <span class="text-sm font-semibold text-gray-900 font-mono">
+            {{ formatCurrency(quote.total) }}
+          </span>
+        </td>
+
+        <!-- Status badge -->
+        <td class="px-4 py-3">
+          <app-badge [status]="quote.status">{{ quote.status_label }}</app-badge>
+        </td>
+
+        <!-- Date -->
+        <td class="px-4 py-3 text-sm text-gray-500">
+          {{ quote.created_at }}
+        </td>
+
+        <!-- Actions -->
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2">
+            <button
+              class="text-xs text-indigo-500 hover:text-indigo-700 font-medium"
+              (click)="goToEdit(quote.id, $event)">
+              Edit
+            </button>
+            @if (!quote.is_converted) {
+              <button
+                class="text-xs text-red-400 hover:text-red-600 font-medium"
+                (click)="delete(quote, $event)">
+                Delete
+              </button>
+            }
+            @if (quote.is_converted) {
+              <span class="text-xs text-emerald-600 font-medium">✓ Invoiced</span>
+            }
+          </div>
+        </td>
+
+      </tr>
+    }
+  </app-table>
+
+</div>
