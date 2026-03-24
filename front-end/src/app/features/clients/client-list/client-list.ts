@@ -1,15 +1,15 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule }                       from '@angular/common';
-import { RouterLink }                         from '@angular/router';
+
 import { ClientService }                      from '../../../core/services';
 import { Client }                              from '../../../core/models';
-import { CardComponent, TableComponent, ButtonComponent, LoaderComponent, EmptyStateComponent, ModalComponent } from '../../../shared/components';
+import {  TableComponent, ButtonComponent, LoaderComponent, EmptyStateComponent, ModalComponent } from '../../../shared/components';
 import { ClientFormComponent }                from '../client-form/client-form';
 
 @Component({
   selector:    'app-client-list',
   standalone:  true,
-  imports:     [CommonModule, RouterLink, CardComponent, TableComponent, ButtonComponent,
+  imports:     [CommonModule, TableComponent, ButtonComponent,
                 LoaderComponent, EmptyStateComponent, ModalComponent, ClientFormComponent],
   templateUrl: './client-list.html',
 })
