@@ -46,7 +46,8 @@
         <app-button variant="secondary" size="sm" (click)="goToPreview()">
           Preview
         </app-button>
-        @if (quote()!.status === 'draft') {
+        @if (canSend) {
+        
           <app-button variant="secondary" size="sm" (click)="goToEdit()">
             Edit
           </app-button>
@@ -54,7 +55,7 @@
             variant="primary" size="sm"
             [loading]="sending()"
             (click)="sendQuote()">
-            Send to Client
+           {{ quote()!.status === 'sent' ? 'Re-send to Client' : 'Send to Client' }}
           </app-button>
         }
         @if (canConvert) {

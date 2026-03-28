@@ -91,10 +91,10 @@ export class QuoteDetailComponent implements OnInit {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
   }
 
-  get canSend(): boolean {
-    return this.quote()?.status === 'draft';
-  }
-
+ get canSend(): boolean {
+  const s = this.quote()?.status;
+  return s === 'draft' || s === 'sent';
+}
   get canConvert(): boolean {
     const s = this.quote()?.status;
     return (s === 'sent' || s === 'approved' || s === 'draft') && !this.quote()?.is_converted;
