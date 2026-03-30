@@ -2,43 +2,23 @@
 
 namespace App\Models;
 
-// ============================================================
-// Invoice.php  —  Laravel 13
-//
-// WHAT CHANGED FROM OLDER LARAVEL:
-//   ✅ casts() as a method
-//   ✅ Accessors use Attribute::make() style
-// ============================================================
-
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-#[Fillable(['user_id',
-        'client_id',
-        'quote_id',
-        'invoice_number',
-        'status',
-        'subtotal',
-        'tax_rate',
-        'total',
-        'due_date',
-        'notes',
-        'stripe_payment_intent_id',
-        'stripe_link',
-        'paid_at',])]
-
 
 class Invoice extends Model
 {
     use HasFactory;
 
-   
+    protected $fillable = [
+        'user_id', 'client_id', 'quote_id', 'invoice_number',
+        'status', 'subtotal', 'tax_rate', 'total', 'due_date',
+        'notes', 'stripe_payment_intent_id', 'stripe_link', 'paid_at',
+    ];
 
-    // ── Casts — Laravel 13 method style ──────────────────
     protected function casts(): array
     {
         return [
@@ -50,39 +30,29 @@ class Invoice extends Model
         ];
     }
 
-    // ══════════════════════════════════════════════════════
-    // RELATIONSHIPS
-    // ══════════════════════════════════════════════════════
+    // ── RELATIONSHIPS ─────────────────────────────────────
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    // Client who receives this invoice
-    // Usage: $invoice->client->email
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
     }
 
-    // The quote this invoice was created from (nullable)
-    // Usage: $invoice->quote → Quote or null
     public function quote(): BelongsTo
     {
         return $this->belongsTo(Quote::class);
     }
 
-    // Line items on this invoice
-    // Usage: $invoice->items
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
     }
 
-    // ══════════════════════════════════════════════════════
-    // QUERY SCOPES
-    // ══════════════════════════════════════════════════════
+    // ── QUERY SCOPES ──────────────────────────────────────
 
     public function scopeUnpaid(Builder $query): Builder
     {
@@ -99,9 +69,6 @@ class Invoice extends Model
         return $query->where('status', 'overdue');
     }
 
-    // Invoices that are past due_date and still unpaid
-    // Used by the scheduled job to mark overdue invoices
-    // Usage: Invoice::duePastDate()->get()
     public function scopeDuePastDate(Builder $query): Builder
     {
         return $query
@@ -109,22 +76,31 @@ class Invoice extends Model
             ->whereDate('due_date', '<', now());
     }
 
-    // ══════════════════════════════════════════════════════
-    // BUSINESS LOGIC METHODS
-    // ══════════════════════════════════════════════════════
+    // ── BUSINESS LOGIC ────────────────────────────────────
 
-    // Generate invoice number: INV-2025-001
+    // ✅ FIXED: uses max() instead of count() — never duplicates
     public static function generateNumber(int $userId): string
     {
-        $year  = date('Y');
-        $count = static::where('user_id', $userId)
-            ->whereYear('created_at', $year)
-            ->count();
+        $year   = date('Y');
+        $prefix = 'INV-' . $year . '-';
 
-        return 'INV-' . $year . '-' . str_pad($count + 1, 3, '0', STR_PAD_LEFT);
+        // Find the highest existing invoice number this year
+        $last = static::where('user_id', $userId)
+            ->whereYear('created_at', $year)
+            ->where('invoice_number', 'like', $prefix . '%')
+            ->max('invoice_number');
+
+        if ($last) {
+            // Extract numeric suffix: "INV-2026-009" → 9
+            $lastNum = (int) substr($last, strlen($prefix));
+            $next    = $lastNum + 1;
+        } else {
+            $next = 1;
+        }
+
+        return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
     }
 
-    // Recalculate totals from all items
     public function recalculateTotals(): void
     {
         $subtotal = $this->items()->sum('subtotal');
@@ -136,8 +112,6 @@ class Invoice extends Model
         ]);
     }
 
-    // Mark invoice as paid — called by Stripe webhook controller
-    // Usage: $invoice->markAsPaid($paymentIntentId)
     public function markAsPaid(string $paymentIntentId): void
     {
         $this->update([
@@ -147,20 +121,13 @@ class Invoice extends Model
         ]);
     }
 
-    // Check if past due date and still unpaid
-    // Used by the daily overdue scheduled job
     public function isOverdue(): bool
     {
-        return $this->status === 'unpaid'
-            && $this->due_date->isPast();
+        return $this->status === 'unpaid' && $this->due_date->isPast();
     }
 
-    // ══════════════════════════════════════════════════════
-    // ACCESSORS — Laravel 13 Attribute::make() style
-    // ══════════════════════════════════════════════════════
+    // ── ACCESSORS ─────────────────────────────────────────
 
-    // Human-readable status: "Unpaid", "Paid", "Overdue"
-    // Usage: $invoice->status_label
     protected function statusLabel(): Attribute
     {
         return Attribute::make(
@@ -173,8 +140,6 @@ class Invoice extends Model
         );
     }
 
-    // Days until payment is due (negative = already overdue)
-    // Usage: $invoice->days_until_due → 14 or -3
     protected function daysUntilDue(): Attribute
     {
         return Attribute::make(

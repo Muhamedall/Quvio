@@ -129,10 +129,10 @@ class QuoteController extends Controller
     {
         $quote = $request->user()
             ->quotes()
-            ->with('items')
+            ->with(['items', 'client'])
             ->findOrFail($id);
 
-        if (! in_array($quote->status, ['sent', 'approved', 'draft'])) {
+        if (! in_array($quote->status, ['draft', 'sent', 'approved'])) {
             return response()->json([
                 'message' => 'This quote cannot be converted.',
             ], 422);
@@ -145,6 +145,22 @@ class QuoteController extends Controller
         }
 
         $invoice = $quote->convertToInvoice();
+
+        // 🔹 Fire n8n webhook for invoice creation
+        WebhookService::fire(config('services.n8n.invoice_created_url'), [
+            'invoice_id'     => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'client_name'    => $invoice->client->name,
+            'client_email'   => $invoice->client->email,
+            'company_name'   => $request->user()->branding['company_name']
+                                 ?? $request->user()->name,
+            'total'          => number_format((float) $invoice->total, 2, '.', ''),
+            'due_date'       => $invoice->due_date->toDateString(),
+            'stripe_link'    => $invoice->stripe_link ?? '',
+        ]);
+
+        // Update original quote status
+        $quote->update(['status' => 'converted']);
 
         return response()->json([
             'message' => 'Quote converted to invoice successfully.',
@@ -167,7 +183,7 @@ class QuoteController extends Controller
 
         $quote->update(['status' => 'sent']);
 
-        // ✅ Laravel 13 fix — use WebhookService instead of Http::withoutThrowing()
+        // 🔹 Fire n8n webhook for quote creation
         WebhookService::fire(config('services.n8n.quote_created_url'), [
             'quote_id'     => $quote->id,
             'quote_number' => $quote->quote_number,

@@ -48,6 +48,6 @@ export const environment = {
   // Stripe publishable key — safe to expose (it's public)
   // Get this from https://dashboard.stripe.com/test/apikeys
   // This is a placeholder — replace with your real test key
-  stripePublicKey: 'pk_test_REPLACE_WITH_YOUR_STRIPE_KEY',
+  stripePublicKey: 'pk_test_51TGRnP0AYYzLoOAxkkyxiOzSghr7Sa2eZpaSmInF4JQddAIMbLAjE5KGrs7rNOncXRJ3u87HsALSXOirWzS1abhr00g7gSIVLU',
 
 };

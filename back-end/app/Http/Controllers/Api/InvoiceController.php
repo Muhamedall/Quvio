@@ -142,14 +142,12 @@ class InvoiceController extends Controller
             ->with('client')
             ->findOrFail($id);
 
-        // ✅ Laravel 13 fix — WebhookService instead of Http::withoutThrowing()
         WebhookService::fire(config('services.n8n.invoice_created_url'), [
             'invoice_id'     => $invoice->id,
             'invoice_number' => $invoice->invoice_number,
             'client_name'    => $invoice->client->name,
             'client_email'   => $invoice->client->email,
-            'company_name'   => $request->user()->branding['company_name']
-                                ?? $request->user()->name,
+            'company_name'   => $request->user()->branding['company_name'] ?? $request->user()->name,
             'total'          => number_format((float) $invoice->total, 2, '.', ''),
             'due_date'       => $invoice->due_date->toDateString(),
             'stripe_link'    => $invoice->stripe_link ?? '',
@@ -235,23 +233,27 @@ class InvoiceController extends Controller
             return response()->json(['message' => 'Invalid signature.'], 400);
         }
 
-        if ($event->type === 'payment_intent.succeeded') {
-            $paymentIntent = $event->data->object;
+        // ✅ Support checkout.session.completed instead of payment_intent.succeeded
+        if ($event->type === 'checkout.session.completed') {
+            $session = $event->data->object;
 
-            $invoice = Invoice::where(
-                'stripe_payment_intent_id',
-                $paymentIntent->id
-            )->first();
+            $invoiceId = $session->metadata->invoice_id ?? null;
 
-            if ($invoice) {
-                $invoice->markAsPaid($paymentIntent->id);
+            if ($invoiceId) {
+                $invoice = Invoice::find($invoiceId);
+                if ($invoice) {
+                    $invoice->markAsPaid($session->payment_intent);
 
-                // ✅ Laravel 13 fix — WebhookService instead of Http::withoutThrowing()
-                WebhookService::fire(config('services.n8n.invoice_paid_url'), [
-                    'invoice_id'     => $invoice->id,
-                    'invoice_number' => $invoice->invoice_number,
-                    'amount'         => $invoice->total,
-                ]);
+                    WebhookService::fire(config('services.n8n.invoice_paid_url'), [
+                        'invoice_id'     => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'amount'         => $invoice->total,
+                    ]);
+                } else {
+                    Log::warning('Invoice not found for webhook', ['invoice_id' => $invoiceId]);
+                }
+            } else {
+                Log::warning('Invoice ID missing in Stripe metadata');
             }
         }
 
