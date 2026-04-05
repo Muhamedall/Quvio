@@ -15,9 +15,7 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
         <p class="text-xs text-gray-400">
           © {{ year }} Quvio. All rights reserved.
         </p>
-        <p class="text-xs text-gray-400">
-          Built with ❤️ for freelancers
-        </p>
+      
       </div>
     </footer>
   `,

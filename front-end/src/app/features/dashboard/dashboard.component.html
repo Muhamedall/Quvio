@@ -1,18 +1,4 @@
-<!-- ============================================================
-dashboard.component.html
 
-LAYOUT:
-  1. Page header     — title + "New Invoice" button
-  2. Stat cards row  — revenue, invoices, quotes, clients (4 cards)
-  3. Chart + Stats   — monthly revenue bar chart + invoice breakdown
-  4. Recent tables   — recent invoices + recent quotes side by side
-
-SHARED COMPONENTS:
-  <app-card>    → every white box
-  <app-badge>   → status labels (paid/unpaid/overdue)
-  <app-loader>  → loading spinner
-  <app-button>  → action buttons
-============================================================ -->
 
 <!-- ── LOADING STATE ────────────────────────────────────── -->
 @if (loading()) {
@@ -84,15 +70,7 @@ SHARED COMPONENTS:
           Here's what's happening with your business today.
         </p>
       </div>
-      <a routerLink="/invoices/new">
-        <app-button
-          variant="primary"
-          iconPosition="left"
-          iconPath="M12 4v16m8-8H4"
-        >
-          New Invoice
-        </app-button>
-      </a>
+     
     </div>
 
     <!-- ══════════════════════════════════════════════════ -->
