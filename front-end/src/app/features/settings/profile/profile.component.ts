@@ -51,6 +51,7 @@ export class ProfileComponent implements OnInit {
 
   saveProfile(): void {
     if (this.profileForm.invalid) { this.profileForm.markAllAsTouched(); return; }
+
     this.savingProfile.set(true);
     this.profileMsg.set('');
     this.profileError.set('');
@@ -59,6 +60,21 @@ export class ProfileComponent implements OnInit {
       next: (res) => {
         this.savingProfile.set(false);
         this.profileMsg.set('Profile updated successfully!');
+
+        // ── KEY FIX: update AuthService signal immediately ──
+        // Without this, the sidebar/navbar keep showing old name
+        // until logout + login refreshes the token data.
+        // We update the in-memory signal directly so all
+        // components using currentUser() reflect the change now.
+        const current = this.authService.currentUser();
+        if (current) {
+          this.authService.setCurrentUser({
+            ...current,
+            name:  res.user.name,
+            email: res.user.email,
+          });
+        }
+
         setTimeout(() => this.profileMsg.set(''), 4000);
       },
       error: (err: HttpErrorResponse) => {

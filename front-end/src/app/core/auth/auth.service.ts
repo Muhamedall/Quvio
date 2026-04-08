@@ -49,6 +49,10 @@ export class AuthService {
     this.currentUser.set(null);
     this.router.navigate(['/auth/login']);
   }
+    setCurrentUser(user: User): void {
+    this.currentUser.set(user);
+    localStorage.setItem('user', JSON.stringify(user));
+  }
 
   isAuthenticated(): boolean {
     return !!localStorage.getItem('token');
@@ -73,5 +77,12 @@ export class AuthService {
         localStorage.removeItem('user');
       }
     }
+  }
+
+    // Refresh user from API (called on app init if token exists)
+  refreshUser(): Observable<any> {
+    return this.http.get<{ user: User }>(`${this.apiUrl}/auth/me`).pipe(
+      tap(res => this.setCurrentUser(res.user))
+    );
   }
 }

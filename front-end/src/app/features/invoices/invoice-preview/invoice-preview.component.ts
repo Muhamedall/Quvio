@@ -27,23 +27,35 @@ export class InvoicePreviewComponent implements OnInit {
     } else {
       this.loading.set(false);
     }
-
-    
-   
   }
+
+  // ✅ Correct implementation of load
   load(uuid: string) {
-    throw new Error('Method not implemented.');
+    this.loading.set(true);
+    this.invoiceService.getById(uuid).subscribe({
+      next: (inv: Invoice) => {
+        this.invoice.set(inv);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load invoice', err);
+        this.loading.set(false);
+      }
+    });
   }
 
-  print():  void { window.print(); }
+  print(): void { window.print(); }
+
   goBack(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    this.router.navigate(['/invoices', id]);
+    // Navigate back to invoices list
+    this.router.navigate(['/invoices']);
   }
 
   formatCurrency(v: number): string {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
   }
 
-  today(): string { return new Date().toLocaleDateString('fr-FR'); }
+  today(): string {
+    return new Date().toLocaleDateString('fr-FR');
+  }
 }

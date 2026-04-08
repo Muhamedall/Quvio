@@ -1,7 +1,7 @@
 import {
-  Component, inject, OnInit, signal, computed
+  Component, inject, OnInit, signal
 } from '@angular/core';
-import { CommonModule }    from '@angular/common';
+import { CommonModule }           from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse }      from '@angular/common/http';
 import {
@@ -15,7 +15,8 @@ import { ButtonComponent, CardComponent, LoaderComponent } from '../../../shared
 @Component({
   selector:    'app-invoice-form',
   standalone:  true,
-  imports:     [CommonModule, ReactiveFormsModule, ButtonComponent, CardComponent, LoaderComponent],
+  imports:     [CommonModule, ReactiveFormsModule, ButtonComponent,
+                CardComponent, LoaderComponent],
   templateUrl: './invoice-form.component.html',
 })
 export class InvoiceFormComponent implements OnInit {
@@ -26,51 +27,39 @@ export class InvoiceFormComponent implements OnInit {
   private router         = inject(Router);
   private route          = inject(ActivatedRoute);
 
-  clients   = signal<Client[]>([]);
-  loading   = signal(false);
-  fetching  = signal(false);
-  error     = signal('');
-invoiceId = signal<string | null>(null);
+  clients  = signal<Client[]>([]);
+  loading  = signal(false);
+  fetching = signal(false);
+  error    = signal('');
+  editUuid = signal<string | null>(null);
+
   form!: FormGroup;
 
-  // Live computed totals
-  subtotal = computed(() => {
+  get subtotal(): number {
     const items = this.form?.get('items') as FormArray;
     if (!items) return 0;
-    return items.controls.reduce((sum, ctrl) => {
-      const qty   = Number(ctrl.get('quantity')?.value  || 0);
-      const price = Number(ctrl.get('unit_price')?.value || 0);
-      return sum + qty * price;
-    }, 0);
-  });
+    return items.controls.reduce((sum, ctrl) =>
+      sum + Number(ctrl.get('quantity')?.value  || 0)
+          * Number(ctrl.get('unit_price')?.value || 0), 0);
+  }
+  get taxRate():   number { return Number(this.form?.get('tax_rate')?.value || 0); }
+  get taxAmount(): number { return this.subtotal * (this.taxRate / 100); }
+  get total():     number { return this.subtotal + this.taxAmount; }
+  get isEdit():    boolean   { return !!this.editUuid(); }
+  get items():     FormArray { return this.form.get('items') as FormArray; }
 
-  taxAmount = computed(() => {
-    const rate = Number(this.form?.get('tax_rate')?.value || 0);
-    return this.subtotal() * (rate / 100);
-  });
-
-  total = computed(() => this.subtotal() + this.taxAmount());
-
-  get isEdit(): boolean  { return !!this.invoiceId(); }
-  get items():  FormArray { return this.form.get('items') as FormArray; }
-
-  // Default due date = 30 days from now
   private defaultDueDate(): string {
     const d = new Date();
     d.setDate(d.getDate() + 30);
     return d.toISOString().split('T')[0];
   }
 
- ngOnInit(): void {
-  this.buildForm();
-  this.loadClients();
-
-  const id = this.route.snapshot.paramMap.get('id');
-  if (id) {
-    this.invoiceId.set(id);   
-    this.loadInvoice(id);     
+  ngOnInit(): void {
+    this.buildForm();
+    this.loadClients();
+    const uuid = this.route.snapshot.paramMap.get('id');
+    if (uuid) { this.editUuid.set(uuid); this.loadInvoice(uuid); }
   }
-}
 
   buildForm(): void {
     this.form = this.fb.group({
@@ -90,8 +79,8 @@ invoiceId = signal<string | null>(null);
     });
   }
 
-  addItem():               void { this.items.push(this.newItem()); }
-  removeItem(i: number):   void { if (this.items.length > 1) this.items.removeAt(i); }
+  addItem():             void { this.items.push(this.newItem()); }
+  removeItem(i: number): void { if (this.items.length > 1) this.items.removeAt(i); }
 
   loadClients(): void {
     this.clientService.getAll().subscribe({ next: d => this.clients.set(d) });
@@ -127,13 +116,13 @@ invoiceId = signal<string | null>(null);
     this.error.set('');
 
     const action$ = this.isEdit
-      ? this.invoiceService.patch(this.invoiceId()!, this.form.value)
+      ? this.invoiceService.patch(this.editUuid()!, this.form.value)
       : this.invoiceService.store(this.form.value);
 
     action$.subscribe({
       next: (inv: Invoice) => {
         this.loading.set(false);
-        this.router.navigate(['/invoices', inv.id]);
+        this.router.navigate(['/invoices', inv.uuid]);
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(err.error?.message ?? 'Failed to save invoice.');
@@ -149,6 +138,7 @@ invoiceId = signal<string | null>(null);
   }
 
   itemSubtotal(ctrl: AbstractControl): number {
-    return Number(ctrl.get('quantity')?.value || 0) * Number(ctrl.get('unit_price')?.value || 0);
+    return Number(ctrl.get('quantity')?.value || 0)
+         * Number(ctrl.get('unit_price')?.value || 0);
   }
 }

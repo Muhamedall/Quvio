@@ -1,8 +1,8 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CommonModule }    from '@angular/common';
+import { CommonModule }                       from '@angular/common';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
-import { InvoiceService }  from '../../../core/services';
-import { Invoice }         from '../../../core/models';
+import { InvoiceService }                     from '../../../core/services';
+import { Invoice }                            from '../../../core/models';
 import {
   ButtonComponent, BadgeComponent, CardComponent,
   LoaderComponent, ModalComponent,
@@ -21,56 +21,49 @@ export class InvoiceDetailComponent implements OnInit {
   private router         = inject(Router);
   private route          = inject(ActivatedRoute);
 
-  invoice         = signal<Invoice | null>(null);
-  loading         = signal(true);
-  generatingLink  = signal(false);
-  sending         = signal(false);
-  downloading     = signal(false);
-  actionMsg       = signal('');
-  actionError     = signal('');
+  invoice        = signal<Invoice | null>(null);
+  loading        = signal(true);
+  generatingLink = signal(false);
+  sending        = signal(false);
+  downloading    = signal(false);
+  actionMsg      = signal('');
+  actionError    = signal('');
 
-  ngOnInit(): void {
-    const uuid = this.route.snapshot.paramMap.get('uuid');
-    if (uuid) {
-      this.load(uuid);
-    } else {
-      this.loading.set(false);
-      this.actionError.set('No invoice specified.');
-    }
+  // uuid comes from route param :id  e.g. /invoices/abc-123
+  private get uuid(): string {
+    return this.route.snapshot.paramMap.get('id') ?? '';
   }
 
-  load( uuid: string): void {
+  ngOnInit(): void { this.load(); }
+
+  load(): void {
     this.loading.set(true);
-    this.invoiceService.getById(uuid).subscribe({
-      next:  (data) => { this.invoice.set(data); this.loading.set(false); },
-      error: ()     => this.loading.set(false),
+    this.invoiceService.getById(this.uuid).subscribe({
+      next:  d => { this.invoice.set(d); this.loading.set(false); },
+      error: () => this.loading.set(false),
     });
   }
 
-  // Generate Stripe payment link
   generatePaymentLink(): void {
-    const inv = this.invoice();
-    if (!inv) return;
+    const inv = this.invoice(); if (!inv) return;
     this.generatingLink.set(true);
     this.actionError.set('');
     this.invoiceService.generatePaymentLink(inv.uuid).subscribe({
-      next: (res) => {
+      next: () => {
         this.generatingLink.set(false);
         this.actionMsg.set('Payment link generated!');
-        this.load(inv.uuid); // reload to get stripe_link
+        this.load();
         setTimeout(() => this.actionMsg.set(''), 4000);
       },
-      error: (err) => {
+      error: err => {
         this.generatingLink.set(false);
-        this.actionError.set(err.error?.message ?? 'Failed to generate payment link.');
+        this.actionError.set(err.error?.message ?? 'Failed to generate link.');
       },
     });
   }
 
-  // Send invoice via n8n
   sendInvoice(): void {
-    const inv = this.invoice();
-    if (!inv) return;
+    const inv = this.invoice(); if (!inv) return;
     this.sending.set(true);
     this.invoiceService.send(inv.uuid).subscribe({
       next: () => {
@@ -82,10 +75,8 @@ export class InvoiceDetailComponent implements OnInit {
     });
   }
 
-  // Download PDF
   downloadPdf(): void {
-    const inv = this.invoice();
-    if (!inv) return;
+    const inv = this.invoice(); if (!inv) return;
     this.downloading.set(true);
     this.invoiceService.downloadPdf(inv.uuid).subscribe({
       next: (blob: Blob) => {
@@ -101,18 +92,16 @@ export class InvoiceDetailComponent implements OnInit {
     });
   }
 
-  // Copy Stripe link to clipboard
   copyLink(): void {
-    const link = this.invoice()?.stripe_link;
-    if (!link) return;
+    const link = this.invoice()?.stripe_link; if (!link) return;
     navigator.clipboard.writeText(link).then(() => {
-      this.actionMsg.set('Payment link copied to clipboard!');
+      this.actionMsg.set('Payment link copied!');
       setTimeout(() => this.actionMsg.set(''), 3000);
     });
   }
 
-  goToEdit():    void { this.router.navigate(['/invoices', this.invoice()!.id, 'edit']); }
-  goToPreview(): void { this.router.navigate(['/invoices', this.invoice()!.id, 'preview']); }
+  goToEdit():    void { const i = this.invoice(); if (i) this.router.navigate(['/invoices', i.uuid, 'edit']); }
+  goToPreview(): void { const i = this.invoice(); if (i) this.router.navigate(['/invoices', i.uuid, 'preview']); }
   goBack():      void { this.router.navigate(['/invoices']); }
 
   formatCurrency(v: number): string {

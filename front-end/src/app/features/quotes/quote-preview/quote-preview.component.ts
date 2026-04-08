@@ -16,11 +16,9 @@ export class QuotePreviewComponent implements OnInit {
   private quoteService = inject(QuoteService);
   private router       = inject(Router);
   private route        = inject(ActivatedRoute);
-  
 
   quote   = signal<Quote | null>(null);
   loading = signal(true);
-  
 
   ngOnInit(): void {
     const uuid = this.route.snapshot.paramMap.get('id');
@@ -28,17 +26,28 @@ export class QuotePreviewComponent implements OnInit {
       this.load(uuid);
     } else {
       this.loading.set(false);
-    } 
+    }
   }
+
+  // ✅ Correct implementation of load
   load(uuid: string) {
-    throw new Error('Method not implemented.');
+    this.loading.set(true);
+    this.quoteService.getById(uuid).subscribe({
+      next: (q: Quote) => {
+        this.quote.set(q);
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('Failed to load quote', err);
+        this.loading.set(false);
+      }
+    });
   }
 
   print(): void { window.print(); }
 
   goBack(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    this.router.navigate(['/quotes', id]);
+    this.router.navigate(['/quotes']); // safer than using the id
   }
 
   formatCurrency(value: number): string {

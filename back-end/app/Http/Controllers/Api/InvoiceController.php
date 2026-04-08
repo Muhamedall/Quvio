@@ -154,13 +154,12 @@ class InvoiceController extends Controller
             ->where('uuid', $uuid)
             ->firstOrFail();
 
-        WebhookService::fire(config('services.n8n.invoice_created_url'), [
+               WebhookService::fire(config('services.n8n.invoice_created_url'), [
             'invoice_id'     => $invoice->id,
             'invoice_number' => $invoice->invoice_number,
             'client_name'    => $invoice->client->name,
             'client_email'   => $invoice->client->email,
-            'company_name'   => $request->user()->branding['company_name']
-                                ?? $request->user()->name,
+            'company_name'   => $request->user()->branding['company_name'] ?? $request->user()->name,
             'total'          => number_format((float) $invoice->total, 2, '.', ''),
             'due_date'       => $invoice->due_date->toDateString(),
             'stripe_link'    => $invoice->stripe_link ?? '',
@@ -225,33 +224,42 @@ class InvoiceController extends Controller
     }
 
     // POST /api/webhooks/stripe (public — no uuid)
-    public function stripeWebhook(Request $request): JsonResponse
+   public function stripeWebhook(Request $request): JsonResponse
     {
         $payload   = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
+        $secret    = config('services.stripe.webhook_secret');
 
         try {
-            $event = Webhook::constructEvent(
-                $payload, $sigHeader, config('services.stripe.webhook_secret')
-            );
+            $event = Webhook::constructEvent($payload, $sigHeader, $secret);
         } catch (SignatureVerificationException $e) {
-            Log::warning('Stripe webhook signature failed.', ['error' => $e->getMessage()]);
+            Log::warning('Stripe webhook signature verification failed.', [
+                'error' => $e->getMessage(),
+            ]);
             return response()->json(['message' => 'Invalid signature.'], 400);
         }
 
-        if ($event->type === 'payment_intent.succeeded') {
-            $invoice = Invoice::where(
-                'stripe_payment_intent_id', $event->data->object->id
-            )->first();
+        // ✅ Support checkout.session.completed instead of payment_intent.succeeded
+        if ($event->type === 'checkout.session.completed') {
+            $session = $event->data->object;
 
-            if ($invoice) {
-                $invoice->markAsPaid($event->data->object->id);
+            $invoiceId = $session->metadata->invoice_id ?? null;
 
-                WebhookService::fire(config('services.n8n.invoice_paid_url'), [
-                    'invoice_id'     => $invoice->id,
-                    'invoice_number' => $invoice->invoice_number,
-                    'total'          => $invoice->total,
-                ]);
+            if ($invoiceId) {
+                $invoice = Invoice::find($invoiceId);
+                if ($invoice) {
+                    $invoice->markAsPaid($session->payment_intent);
+
+                    WebhookService::fire(config('services.n8n.invoice_paid_url'), [
+                        'invoice_id'     => $invoice->id,
+                        'invoice_number' => $invoice->invoice_number,
+                        'amount'         => $invoice->total,
+                    ]);
+                } else {
+                    Log::warning('Invoice not found for webhook', ['invoice_id' => $invoiceId]);
+                }
+            } else {
+                Log::warning('Invoice ID missing in Stripe metadata');
             }
         }
 
