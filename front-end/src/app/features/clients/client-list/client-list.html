@@ -7,12 +7,12 @@
       <h1 class="text-2xl font-bold text-gray-900 tracking-tight">Clients</h1>
       <p class="text-sm text-gray-500 mt-0.5">{{ clients().length }} clients total</p>
     </div>
-    <app-button  variant="primary" iconPath="M12 4v16m8-8H4" (click)="openCreate()">
+    <app-button variant="primary" iconPath="M12 4v16m8-8H4" (click)="openCreate()">
       Add Client
     </app-button>
   </div>
 
-  <!-- Table -->
+  <!-- Table — newest first (backend returns latest() order) -->
   <app-table
     [columns]="columns"
     [loading]="loading()"
@@ -23,38 +23,34 @@
     @for (client of clients(); track client.id) {
       <tr class="hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors">
 
-        <!-- Name + initials -->
+        <!-- Name + avatar -->
         <td class="px-4 py-3">
           <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-              <span class="text-xs font-bold text-indigo-600">{{ client.initials }}</span>
+            <div class="w-8 h-8 rounded-full bg-indigo-100 flex items-center
+                        justify-center shrink-0">
+              <span class="text-xs font-bold text-indigo-600">
+                {{ (client.company ?? client.name).charAt(0).toUpperCase() }}
+              </span>
             </div>
             <span class="text-sm font-medium text-gray-900">{{ client.name }}</span>
           </div>
         </td>
 
-        <!-- Company -->
-        <td class="px-4 py-3 text-sm text-gray-600">
-          {{ client.company ?? '—' }}
-        </td>
-
-        <!-- Email -->
+        <td class="px-4 py-3 text-sm text-gray-600">{{ client.company ?? '—' }}</td>
         <td class="px-4 py-3 text-sm text-gray-600">{{ client.email }}</td>
-
-        <!-- Phone -->
         <td class="px-4 py-3 text-sm text-gray-600">{{ client.phone ?? '—' }}</td>
 
         <!-- Actions -->
         <td class="px-4 py-3">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-3">
             <button
               class="text-xs text-indigo-500 hover:text-indigo-700 font-medium"
-              (click)="openEdit(client)">
+              (click)="openEdit(client, $event)">
               Edit
             </button>
             <button
               class="text-xs text-red-400 hover:text-red-600 font-medium"
-              (click)="delete(client)">
+              (click)="delete(client, $event)">
               Delete
             </button>
           </div>

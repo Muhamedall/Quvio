@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Str;
 
 class Quote extends Model
 {
@@ -16,7 +16,7 @@ class Quote extends Model
 
     protected $fillable = [
         'user_id', 'client_id', 'quote_number', 'status',
-        'subtotal', 'tax_rate', 'total', 'notes', 'valid_until',
+        'subtotal', 'tax_rate', 'total', 'notes', 'valid_until', 'uuid',
     ];
 
     protected function casts(): array
@@ -29,61 +29,62 @@ class Quote extends Model
         ];
     }
 
-    // ── RELATIONSHIPS ─────────────────────────────────────
-
-    public function user(): BelongsTo
+    // Auto-generate UUID on creation
+    protected static function booted(): void
     {
-        return $this->belongsTo(User::class);
+        static::creating(function (Quote $quote) {
+            if (empty($quote->uuid)) {
+                $quote->uuid = (string) Str::uuid();
+            }
+        });
     }
 
-    public function client(): BelongsTo
+    // ── Route model binding — use uuid instead of id ──────
+    // /quotes/abc123... instead of /quotes/16
+    public function getRouteKeyName(): string
     {
-        return $this->belongsTo(Client::class);
+        return 'uuid';
     }
 
-    public function items(): HasMany
+    // ── Relationships ─────────────────────────────────────
+    public function user(): BelongsTo   { return $this->belongsTo(User::class); }
+    public function client(): BelongsTo { return $this->belongsTo(Client::class); }
+    public function items(): HasMany    { return $this->hasMany(InvoiceItem::class); }
+    public function invoice(): HasOne   { return $this->hasOne(Invoice::class); }
+
+    // ── Scopes ────────────────────────────────────────────
+    public function scopeDraft(Builder $q): Builder    { return $q->where('status', 'draft'); }
+    public function scopeSent(Builder $q): Builder     { return $q->where('status', 'sent'); }
+    public function scopeApproved(Builder $q): Builder { return $q->where('status', 'approved'); }
+    public function scopeRejected(Builder $q): Builder { return $q->where('status', 'rejected'); }
+
+    // ── generateNumber — FIXED (MAX not COUNT) ────────────
+    public static function generateNumber(int $userId): string
     {
-        return $this->hasMany(InvoiceItem::class);
+        $year   = date('Y');
+        $prefix = 'QUO-' . $year . '-';
+
+        $last = static::where('user_id', $userId)
+            ->where('quote_number', 'like', $prefix . '%')
+            ->orderByRaw(
+                'CAST(SUBSTRING(quote_number, ?, 3) AS UNSIGNED) DESC',
+                [strlen($prefix) + 1]
+            )
+            ->value('quote_number');
+
+        $next = $last
+            ? (int) substr($last, strlen($prefix)) + 1
+            : 1;
+
+        return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
     }
 
-    public function invoice(): HasOne
-    {
-        return $this->hasOne(Invoice::class);
-    }
-
-    // ── QUERY SCOPES ──────────────────────────────────────
-
-    public function scopeDraft(Builder $query): Builder
-    {
-        return $query->where('status', 'draft');
-    }
-
-    public function scopeSent(Builder $query): Builder
-    {
-        return $query->where('status', 'sent');
-    }
-
-    public function scopeApproved(Builder $query): Builder
-    {
-        return $query->where('status', 'approved');
-    }
-
-    public function scopeRejected(Builder $query): Builder
-    {
-        return $query->where('status', 'rejected');
-    }
-
-    // ── BUSINESS LOGIC ────────────────────────────────────
-
+    // ── Business methods ──────────────────────────────────
     public function recalculateTotals(): void
     {
         $subtotal = $this->items()->sum('subtotal');
         $tax      = $subtotal * ($this->tax_rate / 100);
-
-        $this->updateQuietly([
-            'subtotal' => $subtotal,
-            'total'    => $subtotal + $tax,
-        ]);
+        $this->updateQuietly(['subtotal' => $subtotal, 'total' => $subtotal + $tax]);
     }
 
     public function convertToInvoice(): Invoice
@@ -117,47 +118,20 @@ class Quote extends Model
         return $invoice->load(['client', 'items']);
     }
 
-    // ✅ FIXED: uses max() instead of count() — never duplicates
-    public static function generateNumber(int $userId): string
+    // ── Accessors ─────────────────────────────────────────
+    public function getIsConvertedAttribute(): bool
     {
-        $year   = date('Y');
-        $prefix = 'QUO-' . $year . '-';
-
-        $last = static::where('user_id', $userId)
-            ->whereYear('created_at', $year)
-            ->where('quote_number', 'like', $prefix . '%')
-            ->max('quote_number');
-
-        if ($last) {
-            $lastNum = (int) substr($last, strlen($prefix));
-            $next    = $lastNum + 1;
-        } else {
-            $next = 1;
-        }
-
-        return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
+        return $this->invoice()->exists();
     }
 
-    // ── ACCESSORS ─────────────────────────────────────────
-
-    protected function isConverted(): Attribute
+    public function getStatusLabelAttribute(): string
     {
-        return Attribute::make(
-            get: fn (): bool => $this->invoice()->exists()
-        );
+        return match($this->status) {
+            'draft'    => 'Draft',
+            'sent'     => 'Sent',
+            'approved' => 'Approved',
+            'rejected' => 'Rejected',
+            default    => ucfirst($this->status),
+        };
     }
-
-    protected function statusLabel(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): string => match($this->status) {
-                'draft'    => 'Draft',
-                'sent'     => 'Sent',
-                'approved' => 'Approved',
-                'rejected' => 'Rejected',
-                default    => ucfirst($this->status),
-            }
-        );
-    }
-    
 }

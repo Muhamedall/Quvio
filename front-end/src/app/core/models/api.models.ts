@@ -55,6 +55,7 @@ export type QuoteStatus = 'draft' | 'sent' | 'approved' | 'rejected';
 
 export interface Quote {
   id:           number;
+  uuid:         string; 
   quote_number: string;
   status:       QuoteStatus;
   status_label: string;
@@ -86,6 +87,7 @@ export type InvoiceStatus = 'unpaid' | 'paid' | 'overdue';
 
 export interface Invoice {
   id:             number;
+  uuid:           string;
   invoice_number: string;
   status:         InvoiceStatus;
   status_label:   string;

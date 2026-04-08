@@ -1,3 +1,6 @@
+// ============================================================
+// invoice-list.component.ts — navigate with uuid
+// ============================================================
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule }       from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
@@ -25,32 +28,28 @@ export class InvoiceListComponent implements OnInit {
   filterStatus = signal<InvoiceStatus | 'all'>('all');
 
   readonly columns = [
-    { label: 'Number'  },
-    { label: 'Client'  },
-    { label: 'Total',  align: 'right' as const },
+    { label: 'Number' },
+    { label: 'Client' },
+    { label: 'Total', align: 'right' as const },
     { label: 'Due Date' },
-    { label: 'Status'  },
+    { label: 'Status' },
     { label: 'Actions' },
   ];
 
-  readonly statuses: { value: InvoiceStatus | 'all'; label: string; color: string }[] = [
-    { value: 'all',     label: 'All',     color: '' },
-    { value: 'unpaid',  label: 'Unpaid',  color: 'text-amber-600' },
-    { value: 'paid',    label: 'Paid',    color: 'text-emerald-600' },
-    { value: 'overdue', label: 'Overdue', color: 'text-red-600' },
+  readonly statuses: { value: InvoiceStatus | 'all'; label: string }[] = [
+    { value: 'all',     label: 'All' },
+    { value: 'unpaid',  label: 'Unpaid' },
+    { value: 'paid',    label: 'Paid' },
+    { value: 'overdue', label: 'Overdue' },
   ];
 
   filtered = computed(() => {
-    const status = this.filterStatus();
-    if (status === 'all') return this.invoices();
-    return this.invoices().filter(i => i.status === status);
+    const s = this.filterStatus();
+    return s === 'all' ? this.invoices() : this.invoices().filter(i => i.status === s);
   });
 
-  // Total outstanding amount
   outstanding = computed(() =>
-    this.invoices()
-      .filter(i => i.status !== 'paid')
-      .reduce((sum, i) => sum + i.total, 0)
+    this.invoices().filter(i => i.status !== 'paid').reduce((s, i) => s + i.total, 0)
   );
 
   ngOnInit(): void { this.load(); }
@@ -58,35 +57,33 @@ export class InvoiceListComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.invoiceService.getAll().subscribe({
-      next:  (data) => { this.invoices.set(data); this.loading.set(false); },
-      error: ()     => this.loading.set(false),
+      next:  d => { this.invoices.set(d); this.loading.set(false); },
+      error: () => this.loading.set(false),
     });
   }
 
-  setFilter(status: InvoiceStatus | 'all'): void {
-    this.filterStatus.set(status);
+  setFilter(s: InvoiceStatus | 'all'): void { this.filterStatus.set(s); }
+
+  goToNew():            void { this.router.navigate(['/invoices/new']); }
+  goToDetail(i: Invoice): void { this.router.navigate(['/invoices', i.uuid]); }
+  goToEdit(i: Invoice, e: Event): void {
+    e.stopPropagation();
+    this.router.navigate(['/invoices', i.uuid, 'edit']);
   }
 
-  goToNew():          void { this.router.navigate(['/invoices/new']); }
-  goToDetail(id: number): void { this.router.navigate(['/invoices', id]); }
+  delete(i: Invoice, e: Event): void {
+    e.stopPropagation();
+    if (confirm(`Are you sure you want to delete invoice #${i.invoice_number}?`)) {
+      this.invoiceService.destroy(i.uuid).subscribe(() => this.load());
+    }
+  }
+  
 
-  goToEdit(id: number, event: Event): void {
-    event.stopPropagation();
-    this.router.navigate(['/invoices', id, 'edit']);
+  formatCurrency(v: number): string {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
   }
 
-  delete(invoice: Invoice, event: Event): void {
-    event.stopPropagation();
-    if (invoice.status === 'paid') return;
-    if (!confirm(`Delete ${invoice.invoice_number}?`)) return;
-    this.invoiceService.destroy(invoice.id).subscribe(() => this.load());
-  }
-
-  formatCurrency(value: number): string {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
-  }
-
-  isDueSoon(invoice: Invoice): boolean {
-    return invoice.status === 'unpaid' && invoice.days_until_due <= 7 && invoice.days_until_due >= 0;
+  isDueSoon(i: Invoice): boolean {
+    return i.status === 'unpaid' && i.days_until_due <= 7 && i.days_until_due >= 0;
   }
 }

@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { CommonModule }    from '@angular/common';
+import { CommonModule }       from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { QuoteService }    from '../../../core/services';
+import { QuoteService }       from '../../../core/services';
 import { Quote, QuoteStatus } from '../../../core/models';
 import {
   ButtonComponent, BadgeComponent, TableComponent,
@@ -20,15 +20,15 @@ export class QuoteListComponent implements OnInit {
   private quoteService = inject(QuoteService);
   private router       = inject(Router);
 
-  quotes      = signal<Quote[]>([]);
-  loading     = signal(true);
+  quotes       = signal<Quote[]>([]);
+  loading      = signal(true);
   filterStatus = signal<QuoteStatus | 'all'>('all');
 
   readonly columns = [
-    { label: 'Number',  key: 'quote_number' },
+    { label: 'Number' },
     { label: 'Client' },
-    { label: 'Total',   key: 'total', align: 'right' as const },
-    { label: 'Status',  key: 'status' },
+    { label: 'Total', align: 'right' as const },
+    { label: 'Status' },
     { label: 'Date' },
     { label: 'Actions' },
   ];
@@ -41,11 +41,9 @@ export class QuoteListComponent implements OnInit {
     { value: 'rejected', label: 'Rejected' },
   ];
 
-  // Filtered quotes based on selected status
   filtered = computed(() => {
-    const status = this.filterStatus();
-    if (status === 'all') return this.quotes();
-    return this.quotes().filter(q => q.status === status);
+    const s = this.filterStatus();
+    return s === 'all' ? this.quotes() : this.quotes().filter(q => q.status === s);
   });
 
   ngOnInit(): void { this.load(); }
@@ -53,35 +51,27 @@ export class QuoteListComponent implements OnInit {
   load(): void {
     this.loading.set(true);
     this.quoteService.getAll().subscribe({
-      next:  (data) => { this.quotes.set(data); this.loading.set(false); },
-      error: ()     => { this.loading.set(false); },
+      next:  d => { this.quotes.set(d); this.loading.set(false); },
+      error: () => this.loading.set(false),
     });
   }
 
-  setFilter(status: QuoteStatus | 'all'): void {
-    this.filterStatus.set(status);
+  setFilter(s: QuoteStatus | 'all'): void { this.filterStatus.set(s); }
+
+  goToNew():          void { this.router.navigate(['/quotes/new']); }
+  goToDetail(q: Quote): void { this.router.navigate(['/quotes', q.uuid]); }
+  goToEdit(q: Quote, e: Event): void {
+    e.stopPropagation();
+    this.router.navigate(['/quotes', q.uuid, 'edit']);
   }
 
-  goToNew(): void {
-    this.router.navigate(['/quotes/new']);
+  delete(q: Quote, e: Event): void {
+    e.stopPropagation();
+    if (!confirm(`Delete ${q.quote_number}?`)) return;
+    this.quoteService.destroy(q.uuid).subscribe(() => this.load());
   }
 
-  goToDetail(id: number): void {
-    this.router.navigate(['/quotes', id]);
-  }
-
-  goToEdit(id: number, event: Event): void {
-    event.stopPropagation();
-    this.router.navigate(['/quotes', id, 'edit']);
-  }
-
-  delete(quote: Quote, event: Event): void {
-    event.stopPropagation();
-    if (!confirm(`Delete ${quote.quote_number}?`)) return;
-    this.quoteService.destroy(quote.id).subscribe(() => this.load());
-  }
-
-  formatCurrency(value: number): string {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+  formatCurrency(v: number): string {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
   }
 }

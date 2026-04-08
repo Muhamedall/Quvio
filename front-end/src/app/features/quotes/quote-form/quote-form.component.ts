@@ -1,9 +1,7 @@
-import {
-  Component, inject, OnInit, signal, computed
-} from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule }    from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse }      from '@angular/common/http';
 import {
   ReactiveFormsModule, FormBuilder, FormGroup,
   FormArray, Validators, AbstractControl,
@@ -28,42 +26,34 @@ export class QuoteFormComponent implements OnInit {
 
   clients  = signal<Client[]>([]);
   loading  = signal(false);
-  fetching = signal(false); // fetching existing quote for edit
+  fetching = signal(false);
   error    = signal('');
-  quoteId  = signal<number | null>(null);
+  editUuid = signal<string | null>(null); // uuid from route param
 
   form!: FormGroup;
 
-  // Computed totals — update live as user types
-  subtotal = computed(() => {
-    const items = this.form?.get('items') as FormArray;
-    if (!items) return 0;
-    return items.controls.reduce((sum, ctrl) => {
-      const qty   = Number(ctrl.get('quantity')?.value  || 0);
-      const price = Number(ctrl.get('unit_price')?.value || 0);
-      return sum + (qty * price);
-    }, 0);
-  });
+  get isEdit():  boolean   { return !!this.editUuid(); }
+  get items():   FormArray { return this.form.get('items') as FormArray; }
 
-  taxAmount = computed(() => {
-    const rate = Number(this.form?.get('tax_rate')?.value || 0);
-    return this.subtotal() * (rate / 100);
-  });
-
-  total = computed(() => this.subtotal() + this.taxAmount());
-
-  get isEdit(): boolean { return !!this.quoteId(); }
-  get items(): FormArray { return this.form.get('items') as FormArray; }
+  // ── Live totals as getters (not signals — forms don't trigger signals) ──
+  get subtotal(): number {
+    return this.items?.controls.reduce((sum, ctrl) => {
+      return sum + Number(ctrl.get('quantity')?.value || 0)
+                 * Number(ctrl.get('unit_price')?.value || 0);
+    }, 0) ?? 0;
+  }
+  get taxRate():   number { return Number(this.form?.get('tax_rate')?.value || 0); }
+  get taxAmount(): number { return this.subtotal * (this.taxRate / 100); }
+  get total():     number { return this.subtotal + this.taxAmount; }
 
   ngOnInit(): void {
     this.buildForm();
     this.loadClients();
 
-    // Check if editing
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.quoteId.set(Number(id));
-      this.loadQuote(Number(id));
+    const uuid = this.route.snapshot.paramMap.get('id');
+    if (uuid) {
+      this.editUuid.set(uuid);
+      this.loadQuote(uuid);
     }
   }
 
@@ -80,49 +70,36 @@ export class QuoteFormComponent implements OnInit {
   newItem(): FormGroup {
     return this.fb.group({
       description: ['', Validators.required],
-      quantity:    [1, [Validators.required, Validators.min(0.01)]],
-      unit_price:  [0, [Validators.required, Validators.min(0)]],
+      quantity:    [1,  [Validators.required, Validators.min(0.01)]],
+      unit_price:  [0,  [Validators.required, Validators.min(0)]],
     });
   }
 
-  addItem(): void {
-    this.items.push(this.newItem());
-  }
-
-  removeItem(index: number): void {
-    if (this.items.length > 1) this.items.removeAt(index);
-  }
+  addItem():             void { this.items.push(this.newItem()); }
+  removeItem(i: number): void { if (this.items.length > 1) this.items.removeAt(i); }
 
   loadClients(): void {
-    this.clientService.getAll().subscribe({
-      next: (data) => this.clients.set(data),
-    });
+    this.clientService.getAll().subscribe({ next: d => this.clients.set(d) });
   }
 
-  loadQuote(id: number): void {
+  loadQuote(uuid: string): void {
     this.fetching.set(true);
-    this.quoteService.getById(id).subscribe({
-      next: (quote: Quote) => {
-        // Clear default items
+    this.quoteService.getById(uuid).subscribe({
+      next: (q: Quote) => {
         while (this.items.length) this.items.removeAt(0);
-
-        // Patch form values
         this.form.patchValue({
-          client_id:   quote.client?.id ?? '',
-          tax_rate:    quote.tax_rate,
-          notes:       quote.notes ?? '',
-          valid_until: quote.valid_until ?? '',
+          client_id:   q.client?.id ?? '',
+          tax_rate:    q.tax_rate,
+          notes:       q.notes ?? '',
+          valid_until: q.valid_until ?? '',
         });
-
-        // Add existing items
-        (quote.items ?? []).forEach(item => {
+        (q.items ?? []).forEach(item => {
           this.items.push(this.fb.group({
             description: [item.description, Validators.required],
-            quantity:    [item.quantity, [Validators.required, Validators.min(0.01)]],
-            unit_price:  [item.unit_price, [Validators.required, Validators.min(0)]],
+            quantity:    [item.quantity,    [Validators.required, Validators.min(0.01)]],
+            unit_price:  [item.unit_price,  [Validators.required, Validators.min(0)]],
           }));
         });
-
         this.fetching.set(false);
       },
       error: () => this.fetching.set(false),
@@ -131,20 +108,17 @@ export class QuoteFormComponent implements OnInit {
 
   onSubmit(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
-
     this.loading.set(true);
     this.error.set('');
 
-    const payload = this.form.value;
-
     const action$ = this.isEdit
-      ? this.quoteService.patch(this.quoteId()!, payload)
-      : this.quoteService.store(payload);
+      ? this.quoteService.patch(this.editUuid()!, this.form.value)
+      : this.quoteService.store(this.form.value);
 
     action$.subscribe({
-      next: (quote: Quote) => {
+      next: (q: Quote) => {
         this.loading.set(false);
-        this.router.navigate(['/quotes', quote.id]);
+        this.router.navigate(['/quotes', q.uuid]);
       },
       error: (err: HttpErrorResponse) => {
         this.error.set(err.error?.message ?? 'Failed to save quote.');
@@ -153,17 +127,14 @@ export class QuoteFormComponent implements OnInit {
     });
   }
 
-  cancel(): void {
-    this.router.navigate(['/quotes']);
-  }
+  cancel(): void { this.router.navigate(['/quotes']); }
 
-  formatCurrency(value: number): string {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(value);
+  formatCurrency(v: number): string {
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(v);
   }
 
   itemSubtotal(ctrl: AbstractControl): number {
-    const qty   = Number(ctrl.get('quantity')?.value  || 0);
-    const price = Number(ctrl.get('unit_price')?.value || 0);
-    return qty * price;
+    return Number(ctrl.get('quantity')?.value || 0)
+         * Number(ctrl.get('unit_price')?.value || 0);
   }
 }

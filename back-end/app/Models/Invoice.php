@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Invoice extends Model
 {
@@ -15,8 +15,9 @@ class Invoice extends Model
 
     protected $fillable = [
         'user_id', 'client_id', 'quote_id', 'invoice_number',
-        'status', 'subtotal', 'tax_rate', 'total', 'due_date',
-        'notes', 'stripe_payment_intent_id', 'stripe_link', 'paid_at',
+        'status', 'subtotal', 'tax_rate', 'total',
+        'due_date', 'notes', 'stripe_payment_intent_id',
+        'stripe_link', 'paid_at', 'uuid',
     ];
 
     protected function casts(): array
@@ -30,86 +31,60 @@ class Invoice extends Model
         ];
     }
 
-    // ── RELATIONSHIPS ─────────────────────────────────────
-
-    public function user(): BelongsTo
+    // Auto-generate UUID on creation
+    protected static function booted(): void
     {
-        return $this->belongsTo(User::class);
+        static::creating(function (Invoice $invoice) {
+            if (empty($invoice->uuid)) {
+                $invoice->uuid = (string) Str::uuid();
+            }
+        });
     }
 
-    public function client(): BelongsTo
+    // ── Route model binding — use uuid instead of id ──────
+    public function getRouteKeyName(): string
     {
-        return $this->belongsTo(Client::class);
+        return 'uuid';
     }
 
-    public function quote(): BelongsTo
-    {
-        return $this->belongsTo(Quote::class);
-    }
+    // ── Relationships ─────────────────────────────────────
+    public function user(): BelongsTo   { return $this->belongsTo(User::class); }
+    public function client(): BelongsTo { return $this->belongsTo(Client::class); }
+    public function quote(): BelongsTo  { return $this->belongsTo(Quote::class); }
+    public function items(): HasMany    { return $this->hasMany(InvoiceItem::class); }
 
-    public function items(): HasMany
-    {
-        return $this->hasMany(InvoiceItem::class);
-    }
+    // ── Scopes ────────────────────────────────────────────
+    public function scopeUnpaid(Builder $q): Builder  { return $q->where('status', 'unpaid'); }
+    public function scopePaid(Builder $q): Builder    { return $q->where('status', 'paid'); }
+    public function scopeOverdue(Builder $q): Builder { return $q->where('status', 'overdue'); }
 
-    // ── QUERY SCOPES ──────────────────────────────────────
-
-    public function scopeUnpaid(Builder $query): Builder
-    {
-        return $query->where('status', 'unpaid');
-    }
-
-    public function scopePaid(Builder $query): Builder
-    {
-        return $query->where('status', 'paid');
-    }
-
-    public function scopeOverdue(Builder $query): Builder
-    {
-        return $query->where('status', 'overdue');
-    }
-
-    public function scopeDuePastDate(Builder $query): Builder
-    {
-        return $query
-            ->where('status', 'unpaid')
-            ->whereDate('due_date', '<', now());
-    }
-
-    // ── BUSINESS LOGIC ────────────────────────────────────
-
-    // ✅ FIXED: uses max() instead of count() — never duplicates
+    // ── generateNumber — FIXED (MAX not COUNT) ────────────
     public static function generateNumber(int $userId): string
     {
         $year   = date('Y');
         $prefix = 'INV-' . $year . '-';
 
-        // Find the highest existing invoice number this year
         $last = static::where('user_id', $userId)
-            ->whereYear('created_at', $year)
             ->where('invoice_number', 'like', $prefix . '%')
-            ->max('invoice_number');
+            ->orderByRaw(
+                'CAST(SUBSTRING(invoice_number, ?, 3) AS UNSIGNED) DESC',
+                [strlen($prefix) + 1]
+            )
+            ->value('invoice_number');
 
-        if ($last) {
-            // Extract numeric suffix: "INV-2026-009" → 9
-            $lastNum = (int) substr($last, strlen($prefix));
-            $next    = $lastNum + 1;
-        } else {
-            $next = 1;
-        }
+        $next = $last
+            ? (int) substr($last, strlen($prefix)) + 1
+            : 1;
 
         return $prefix . str_pad($next, 3, '0', STR_PAD_LEFT);
     }
 
+    // ── Business methods ──────────────────────────────────
     public function recalculateTotals(): void
     {
         $subtotal = $this->items()->sum('subtotal');
         $tax      = $subtotal * ($this->tax_rate / 100);
-
-        $this->updateQuietly([
-            'subtotal' => $subtotal,
-            'total'    => $subtotal + $tax,
-        ]);
+        $this->updateQuietly(['subtotal' => $subtotal, 'total' => $subtotal + $tax]);
     }
 
     public function markAsPaid(string $paymentIntentId): void
@@ -121,29 +96,19 @@ class Invoice extends Model
         ]);
     }
 
-    public function isOverdue(): bool
+    // ── Accessors ─────────────────────────────────────────
+    public function getStatusLabelAttribute(): string
     {
-        return $this->status === 'unpaid' && $this->due_date->isPast();
+        return match($this->status) {
+            'unpaid'  => 'Unpaid',
+            'paid'    => 'Paid',
+            'overdue' => 'Overdue',
+            default   => ucfirst($this->status),
+        };
     }
 
-    // ── ACCESSORS ─────────────────────────────────────────
-
-    protected function statusLabel(): Attribute
+    public function getDaysUntilDueAttribute(): int
     {
-        return Attribute::make(
-            get: fn (): string => match($this->status) {
-                'unpaid'  => 'Unpaid',
-                'paid'    => 'Paid',
-                'overdue' => 'Overdue',
-                default   => ucfirst($this->status),
-            }
-        );
-    }
-
-    protected function daysUntilDue(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): int => (int) now()->diffInDays($this->due_date, false)
-        );
+        return (int) now()->diffInDays($this->due_date, false);
     }
 }

@@ -16,16 +16,22 @@ export class QuotePreviewComponent implements OnInit {
   private quoteService = inject(QuoteService);
   private router       = inject(Router);
   private route        = inject(ActivatedRoute);
+  
 
   quote   = signal<Quote | null>(null);
   loading = signal(true);
+  
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.quoteService.getById(id).subscribe({
-      next:  (data) => { this.quote.set(data); this.loading.set(false); },
-      error: ()     => this.loading.set(false),
-    });
+    const uuid = this.route.snapshot.paramMap.get('id');
+    if (uuid) {
+      this.load(uuid);
+    } else {
+      this.loading.set(false);
+    } 
+  }
+  load(uuid: string) {
+    throw new Error('Method not implemented.');
   }
 
   print(): void { window.print(); }

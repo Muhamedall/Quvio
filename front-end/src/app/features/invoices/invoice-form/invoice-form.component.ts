@@ -30,8 +30,7 @@ export class InvoiceFormComponent implements OnInit {
   loading   = signal(false);
   fetching  = signal(false);
   error     = signal('');
-  invoiceId = signal<number | null>(null);
-
+invoiceId = signal<string | null>(null);
   form!: FormGroup;
 
   // Live computed totals
@@ -62,16 +61,16 @@ export class InvoiceFormComponent implements OnInit {
     return d.toISOString().split('T')[0];
   }
 
-  ngOnInit(): void {
-    this.buildForm();
-    this.loadClients();
+ ngOnInit(): void {
+  this.buildForm();
+  this.loadClients();
 
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
-      this.invoiceId.set(Number(id));
-      this.loadInvoice(Number(id));
-    }
+  const id = this.route.snapshot.paramMap.get('id');
+  if (id) {
+    this.invoiceId.set(id);   
+    this.loadInvoice(id);     
   }
+}
 
   buildForm(): void {
     this.form = this.fb.group({
@@ -98,9 +97,9 @@ export class InvoiceFormComponent implements OnInit {
     this.clientService.getAll().subscribe({ next: d => this.clients.set(d) });
   }
 
-  loadInvoice(id: number): void {
+  loadInvoice(uuid: string): void {
     this.fetching.set(true);
-    this.invoiceService.getById(id).subscribe({
+    this.invoiceService.getById(uuid).subscribe({
       next: (inv: Invoice) => {
         while (this.items.length) this.items.removeAt(0);
         this.form.patchValue({

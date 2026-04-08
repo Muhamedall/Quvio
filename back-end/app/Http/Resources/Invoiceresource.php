@@ -11,36 +11,39 @@ class InvoiceResource extends JsonResource
     {
         return [
             'id'             => $this->id,
-            'invoice_number' => $this->invoice_number,  // INV-2025-001
-            'status'         => $this->status,           // unpaid|paid|overdue
-            'status_label'   => $this->status_label,     // "Unpaid"...
-
-            // Amounts
-            'subtotal'       => (float) $this->subtotal,
+            'uuid'           => $this->uuid,         
+            'invoice_number' => $this->invoice_number,
+            'status'         => $this->status,
+            'status_label'   => $this->status_label,
             'tax_rate'       => (float) $this->tax_rate,
+            'subtotal'       => (float) $this->subtotal,
             'total'          => (float) $this->total,
-
-            // Dates
-            'due_date'       => $this->due_date->toDateString(),
-            'paid_at'        => $this->paid_at?->toDateTimeString(),  // null until paid
-
-            // Days until payment due (negative = overdue)
+            'due_date'       => $this->due_date?->toDateString(),
+            'paid_at'        => $this->paid_at?->toDateString(),
             'days_until_due' => $this->days_until_due,
-
-            // Stripe
-            'stripe_link'    => $this->stripe_link,  // null until generated
-
             'notes'          => $this->notes,
+            'stripe_link'    => $this->stripe_link,
 
-            // Nested resources
-            'client'         => new ClientResource($this->whenLoaded('client')),
-            'quote'          => new QuoteResource($this->whenLoaded('quote')),
-            'items'          => InvoiceItemResource::collection(
-                                  $this->whenLoaded('items')
-                                ),
+            'client' => $this->whenLoaded('client', fn () => [
+                'id'      => $this->client->id,
+                'name'    => $this->client->name,
+                'email'   => $this->client->email,
+                'phone'   => $this->client->phone,
+                'company' => $this->client->company,
+                'address' => $this->client->address,
+            ]),
 
-            'created_at'     => $this->created_at->toDateString(),
-            'updated_at'     => $this->updated_at->toDateString(),
+            'items' => $this->whenLoaded('items',
+                fn () => InvoiceItemResource::collection($this->items)
+            ),
+
+            'quote' => $this->whenLoaded('quote', fn () => $this->quote ? [
+                'id'           => $this->quote->id,
+                'uuid'         => $this->quote->uuid,
+                'quote_number' => $this->quote->quote_number,
+            ] : null),
+
+            'created_at' => $this->created_at->toDateString(),
         ];
     }
 }

@@ -11,33 +11,31 @@ class QuoteResource extends JsonResource
     {
         return [
             'id'           => $this->id,
-            'quote_number' => $this->quote_number,  // QUO-2025-001
-            'status'       => $this->status,         // draft|sent|approved|rejected
-            'status_label' => $this->status_label,   // "Draft", "Sent"...
-
-            // Amounts — cast to float by the model
-            'subtotal'     => (float) $this->subtotal,
+            'uuid'         => $this->uuid,          
+            'quote_number' => $this->quote_number,
+            'status'       => $this->status,
+            'status_label' => $this->status_label,
             'tax_rate'     => (float) $this->tax_rate,
+            'subtotal'     => (float) $this->subtotal,
             'total'        => (float) $this->total,
-
             'notes'        => $this->notes,
-            'valid_until'  => $this->valid_until?->toDateString(),  // nullable date
-
-            // Computed — from model accessor
-            'is_converted' => $this->is_converted,  // bool: has an invoice?
-
-            // Nested: client data — only if relation was loaded
-            // In index(): we don't load client (too many queries)
-            // In show(): we load client (need full details)
-            'client'       => new ClientResource($this->whenLoaded('client')),
-
-            // Nested: line items — only if loaded
-            'items'        => InvoiceItemResource::collection(
-                                $this->whenLoaded('items')
-                              ),
-
+            'valid_until'  => $this->valid_until?->toDateString(),
+            'is_converted' => $this->is_converted,
             'created_at'   => $this->created_at->toDateString(),
             'updated_at'   => $this->updated_at->toDateString(),
+
+            'client' => $this->whenLoaded('client', fn () => [
+                'id'      => $this->client->id,
+                'name'    => $this->client->name,
+                'email'   => $this->client->email,
+                'phone'   => $this->client->phone,
+                'company' => $this->client->company,
+                'address' => $this->client->address,
+            ]),
+
+            'items' => $this->whenLoaded('items',
+                fn () => InvoiceItemResource::collection($this->items)
+            ),
         ];
     }
 }

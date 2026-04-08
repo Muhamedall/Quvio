@@ -41,7 +41,7 @@
       <tr
         class="hover:bg-gray-50 border-b border-gray-100 last:border-0
                transition-colors cursor-pointer"
-        (click)="goToDetail(quote.id)"
+        (click)="goToDetail(quote)"
       >
         <!-- Quote number -->
         <td class="px-4 py-3">
@@ -79,7 +79,7 @@
           <div class="flex items-center gap-2">
             <button
               class="text-xs text-indigo-500 hover:text-indigo-700 font-medium"
-              (click)="goToEdit(quote.id, $event)">
+             (click)="goToEdit(quote, $event)">
               Edit
             </button>
             @if (!quote.is_converted) {

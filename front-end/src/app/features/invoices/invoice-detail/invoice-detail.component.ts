@@ -30,13 +30,18 @@ export class InvoiceDetailComponent implements OnInit {
   actionError     = signal('');
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.load(id);
+    const uuid = this.route.snapshot.paramMap.get('uuid');
+    if (uuid) {
+      this.load(uuid);
+    } else {
+      this.loading.set(false);
+      this.actionError.set('No invoice specified.');
+    }
   }
 
-  load(id: number): void {
+  load( uuid: string): void {
     this.loading.set(true);
-    this.invoiceService.getById(id).subscribe({
+    this.invoiceService.getById(uuid).subscribe({
       next:  (data) => { this.invoice.set(data); this.loading.set(false); },
       error: ()     => this.loading.set(false),
     });
@@ -48,11 +53,11 @@ export class InvoiceDetailComponent implements OnInit {
     if (!inv) return;
     this.generatingLink.set(true);
     this.actionError.set('');
-    this.invoiceService.generatePaymentLink(inv.id).subscribe({
+    this.invoiceService.generatePaymentLink(inv.uuid).subscribe({
       next: (res) => {
         this.generatingLink.set(false);
         this.actionMsg.set('Payment link generated!');
-        this.load(inv.id); // reload to get stripe_link
+        this.load(inv.uuid); // reload to get stripe_link
         setTimeout(() => this.actionMsg.set(''), 4000);
       },
       error: (err) => {
@@ -67,7 +72,7 @@ export class InvoiceDetailComponent implements OnInit {
     const inv = this.invoice();
     if (!inv) return;
     this.sending.set(true);
-    this.invoiceService.send(inv.id).subscribe({
+    this.invoiceService.send(inv.uuid).subscribe({
       next: () => {
         this.sending.set(false);
         this.actionMsg.set('Invoice sent to client!');
@@ -82,7 +87,7 @@ export class InvoiceDetailComponent implements OnInit {
     const inv = this.invoice();
     if (!inv) return;
     this.downloading.set(true);
-    this.invoiceService.downloadPdf(inv.id).subscribe({
+    this.invoiceService.downloadPdf(inv.uuid).subscribe({
       next: (blob: Blob) => {
         const url  = window.URL.createObjectURL(blob);
         const link = document.createElement('a');

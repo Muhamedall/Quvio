@@ -15,6 +15,16 @@ use Illuminate\Support\Facades\DB;
 
 class QuoteController extends Controller
 {
+    // ── Helper: find quote by UUID scoped to user ─────────
+    private function findQuote(Request $request, string $uuid): Quote
+    {
+        return $request->user()
+            ->quotes()
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+    }
+
+    // GET /api/quotes
     public function index(Request $request): AnonymousResourceCollection
     {
         $quotes = $request->user()
@@ -26,6 +36,7 @@ class QuoteController extends Controller
         return QuoteResource::collection($quotes);
     }
 
+    // POST /api/quotes
     public function store(StoreQuoteRequest $request): JsonResponse
     {
         $quote = DB::transaction(function () use ($request) {
@@ -60,23 +71,24 @@ class QuoteController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(Request $request, int $id): JsonResponse
+    // GET /api/quotes/{uuid}
+    public function show(Request $request, string $uuid): JsonResponse
     {
         $quote = $request->user()
             ->quotes()
             ->with(['client', 'items'])
-            ->findOrFail($id);
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
         return (new QuoteResource($quote))->response();
     }
 
-    public function update(UpdateQuoteRequest $request, int $id): JsonResponse
+    // PUT /api/quotes/{uuid}
+    public function update(UpdateQuoteRequest $request, string $uuid): JsonResponse
     {
-        $quote = $request->user()
-            ->quotes()
-            ->findOrFail($id);
+        $quote = $this->findQuote($request, $uuid);
 
-        if (! in_array($quote->status, ['draft'])) {
+        if ($quote->status !== 'draft') {
             return response()->json([
                 'message' => 'Only draft quotes can be edited.',
             ], 422);
@@ -89,7 +101,6 @@ class QuoteController extends Controller
 
             if ($request->has('items')) {
                 $quote->items()->delete();
-
                 foreach ($request->items as $item) {
                     $quote->items()->create([
                         'description' => $item['description'],
@@ -108,15 +119,14 @@ class QuoteController extends Controller
         return (new QuoteResource($quote))->response();
     }
 
-    public function destroy(Request $request, int $id): JsonResponse
+    // DELETE /api/quotes/{uuid}
+    public function destroy(Request $request, string $uuid): JsonResponse
     {
-        $quote = $request->user()
-            ->quotes()
-            ->findOrFail($id);
+        $quote = $this->findQuote($request, $uuid);
 
         if ($quote->is_converted) {
             return response()->json([
-                'message' => 'Cannot delete a quote that has been converted to an invoice.',
+                'message' => 'Cannot delete a converted quote.',
             ], 422);
         }
 
@@ -125,55 +135,14 @@ class QuoteController extends Controller
         return response()->json(null, 204);
     }
 
-    public function convert(Request $request, int $id): JsonResponse
-    {
-        $quote = $request->user()
-            ->quotes()
-            ->with(['items', 'client'])
-            ->findOrFail($id);
-
-        if (! in_array($quote->status, ['draft', 'sent', 'approved'])) {
-            return response()->json([
-                'message' => 'This quote cannot be converted.',
-            ], 422);
-        }
-
-        if ($quote->is_converted) {
-            return response()->json([
-                'message' => 'This quote has already been converted to an invoice.',
-            ], 422);
-        }
-
-        $invoice = $quote->convertToInvoice();
-
-        // 🔹 Fire n8n webhook for invoice creation
-        WebhookService::fire(config('services.n8n.invoice_created_url'), [
-            'invoice_id'     => $invoice->id,
-            'invoice_number' => $invoice->invoice_number,
-            'client_name'    => $invoice->client->name,
-            'client_email'   => $invoice->client->email,
-            'company_name'   => $request->user()->branding['company_name']
-                                 ?? $request->user()->name,
-            'total'          => number_format((float) $invoice->total, 2, '.', ''),
-            'due_date'       => $invoice->due_date->toDateString(),
-            'stripe_link'    => $invoice->stripe_link ?? '',
-        ]);
-
-        // Update original quote status
-        $quote->update(['status' => 'converted']);
-
-        return response()->json([
-            'message' => 'Quote converted to invoice successfully.',
-            'invoice' => $invoice,
-        ], 201);
-    }
-
-    public function send(Request $request, int $id): JsonResponse
+    // POST /api/quotes/{uuid}/send
+    public function send(Request $request, string $uuid): JsonResponse
     {
         $quote = $request->user()
             ->quotes()
             ->with('client')
-            ->findOrFail($id);
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
         if (! in_array($quote->status, ['draft', 'sent'])) {
             return response()->json([
@@ -183,7 +152,6 @@ class QuoteController extends Controller
 
         $quote->update(['status' => 'sent']);
 
-        // 🔹 Fire n8n webhook for quote creation
         WebhookService::fire(config('services.n8n.quote_created_url'), [
             'quote_id'     => $quote->id,
             'quote_number' => $quote->quote_number,
@@ -203,5 +171,37 @@ class QuoteController extends Controller
             'message' => 'Quote sent successfully.',
             'quote'   => new QuoteResource($quote),
         ]);
+    }
+
+    // POST /api/quotes/{uuid}/convert
+    public function convert(Request $request, string $uuid): JsonResponse
+    {
+        $quote = $request->user()
+            ->quotes()
+            ->with('items')
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+
+        if (! in_array($quote->status, ['sent', 'approved', 'draft'])) {
+            return response()->json([
+                'message' => 'This quote cannot be converted.',
+            ], 422);
+        }
+
+        if ($quote->is_converted) {
+            return response()->json([
+                'message' => 'This quote has already been converted to an invoice.',
+            ], 422);
+        }
+
+        $invoice = $quote->convertToInvoice();
+
+        return response()->json([
+            'message' => 'Quote converted to invoice successfully.',
+            'invoice' => [
+                'id'   => $invoice->id,
+                'uuid' => $invoice->uuid,
+            ],
+        ], 201);
     }
 }

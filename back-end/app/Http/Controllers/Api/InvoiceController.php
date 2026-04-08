@@ -21,6 +21,16 @@ use Stripe\Webhook;
 
 class InvoiceController extends Controller
 {
+    // ── Helper: find invoice by UUID scoped to user ───────
+    private function findInvoice(Request $request, string $uuid): Invoice
+    {
+        return $request->user()
+            ->invoices()
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+    }
+
+    // GET /api/invoices
     public function index(Request $request): AnonymousResourceCollection
     {
         $query = $request->user()
@@ -35,6 +45,7 @@ class InvoiceController extends Controller
         return InvoiceResource::collection($query->get());
     }
 
+    // POST /api/invoices
     public function store(StoreInvoiceRequest $request): JsonResponse
     {
         $invoice = DB::transaction(function () use ($request) {
@@ -70,21 +81,22 @@ class InvoiceController extends Controller
             ->setStatusCode(201);
     }
 
-    public function show(Request $request, int $id): JsonResponse
+    // GET /api/invoices/{uuid}
+    public function show(Request $request, string $uuid): JsonResponse
     {
         $invoice = $request->user()
             ->invoices()
             ->with(['client', 'items', 'quote'])
-            ->findOrFail($id);
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
         return (new InvoiceResource($invoice))->response();
     }
 
-    public function update(UpdateInvoiceRequest $request, int $id): JsonResponse
+    // PUT /api/invoices/{uuid}
+    public function update(UpdateInvoiceRequest $request, string $uuid): JsonResponse
     {
-        $invoice = $request->user()
-            ->invoices()
-            ->findOrFail($id);
+        $invoice = $this->findInvoice($request, $uuid);
 
         if ($invoice->status === 'paid') {
             return response()->json([
@@ -99,7 +111,6 @@ class InvoiceController extends Controller
 
             if ($request->has('items')) {
                 $invoice->items()->delete();
-
                 foreach ($request->items as $item) {
                     $invoice->items()->create([
                         'description' => $item['description'],
@@ -118,11 +129,10 @@ class InvoiceController extends Controller
         return (new InvoiceResource($invoice))->response();
     }
 
-    public function destroy(Request $request, int $id): JsonResponse
+    // DELETE /api/invoices/{uuid}
+    public function destroy(Request $request, string $uuid): JsonResponse
     {
-        $invoice = $request->user()
-            ->invoices()
-            ->findOrFail($id);
+        $invoice = $this->findInvoice($request, $uuid);
 
         if ($invoice->status === 'paid') {
             return response()->json([
@@ -135,35 +145,38 @@ class InvoiceController extends Controller
         return response()->json(null, 204);
     }
 
-    public function send(Request $request, int $id): JsonResponse
+    // POST /api/invoices/{uuid}/send
+    public function send(Request $request, string $uuid): JsonResponse
     {
         $invoice = $request->user()
             ->invoices()
             ->with('client')
-            ->findOrFail($id);
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
         WebhookService::fire(config('services.n8n.invoice_created_url'), [
             'invoice_id'     => $invoice->id,
             'invoice_number' => $invoice->invoice_number,
             'client_name'    => $invoice->client->name,
             'client_email'   => $invoice->client->email,
-            'company_name'   => $request->user()->branding['company_name'] ?? $request->user()->name,
+            'company_name'   => $request->user()->branding['company_name']
+                                ?? $request->user()->name,
             'total'          => number_format((float) $invoice->total, 2, '.', ''),
             'due_date'       => $invoice->due_date->toDateString(),
             'stripe_link'    => $invoice->stripe_link ?? '',
         ]);
 
-        return response()->json([
-            'message' => 'Invoice sent successfully.',
-        ]);
+        return response()->json(['message' => 'Invoice sent successfully.']);
     }
 
-    public function pdf(Request $request, int $id): Response
+    // GET /api/invoices/{uuid}/pdf
+    public function pdf(Request $request, string $uuid): Response
     {
         $invoice = $request->user()
             ->invoices()
             ->with(['client', 'items', 'quote'])
-            ->findOrFail($id);
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
         $pdf = Pdf::loadView('pdf.invoice', [
             'invoice' => $invoice,
@@ -177,17 +190,17 @@ class InvoiceController extends Controller
         return $pdf->download("invoice-{$invoice->invoice_number}.pdf");
     }
 
-    public function generatePaymentLink(Request $request, int $id): JsonResponse
+    // POST /api/invoices/{uuid}/payment-link
+    public function generatePaymentLink(Request $request, string $uuid): JsonResponse
     {
         $invoice = $request->user()
             ->invoices()
             ->with('client')
-            ->findOrFail($id);
+            ->where('uuid', $uuid)
+            ->firstOrFail();
 
         if ($invoice->status === 'paid') {
-            return response()->json([
-                'message' => 'Invoice is already paid.',
-            ], 422);
+            return response()->json(['message' => 'Invoice is already paid.'], 422);
         }
 
         $stripe = new StripeClient(config('services.stripe.secret'));
@@ -195,19 +208,12 @@ class InvoiceController extends Controller
         $price = $stripe->prices->create([
             'unit_amount'  => (int) ($invoice->total * 100),
             'currency'     => 'eur',
-            'product_data' => [
-                'name' => "Invoice {$invoice->invoice_number}",
-            ],
+            'product_data' => ['name' => "Invoice {$invoice->invoice_number}"],
         ]);
 
         $paymentLink = $stripe->paymentLinks->create([
-            'line_items' => [[
-                'price'    => $price->id,
-                'quantity' => 1,
-            ]],
-            'metadata' => [
-                'invoice_id' => $invoice->id,
-            ],
+            'line_items' => [['price' => $price->id, 'quantity' => 1]],
+            'metadata'   => ['invoice_id' => $invoice->id],
         ]);
 
         $invoice->update(['stripe_link' => $paymentLink->url]);
@@ -218,42 +224,34 @@ class InvoiceController extends Controller
         ]);
     }
 
+    // POST /api/webhooks/stripe (public — no uuid)
     public function stripeWebhook(Request $request): JsonResponse
     {
         $payload   = $request->getContent();
         $sigHeader = $request->header('Stripe-Signature');
-        $secret    = config('services.stripe.webhook_secret');
 
         try {
-            $event = Webhook::constructEvent($payload, $sigHeader, $secret);
+            $event = Webhook::constructEvent(
+                $payload, $sigHeader, config('services.stripe.webhook_secret')
+            );
         } catch (SignatureVerificationException $e) {
-            Log::warning('Stripe webhook signature verification failed.', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::warning('Stripe webhook signature failed.', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Invalid signature.'], 400);
         }
 
-        // ✅ Support checkout.session.completed instead of payment_intent.succeeded
-        if ($event->type === 'checkout.session.completed') {
-            $session = $event->data->object;
+        if ($event->type === 'payment_intent.succeeded') {
+            $invoice = Invoice::where(
+                'stripe_payment_intent_id', $event->data->object->id
+            )->first();
 
-            $invoiceId = $session->metadata->invoice_id ?? null;
+            if ($invoice) {
+                $invoice->markAsPaid($event->data->object->id);
 
-            if ($invoiceId) {
-                $invoice = Invoice::find($invoiceId);
-                if ($invoice) {
-                    $invoice->markAsPaid($session->payment_intent);
-
-                    WebhookService::fire(config('services.n8n.invoice_paid_url'), [
-                        'invoice_id'     => $invoice->id,
-                        'invoice_number' => $invoice->invoice_number,
-                        'amount'         => $invoice->total,
-                    ]);
-                } else {
-                    Log::warning('Invoice not found for webhook', ['invoice_id' => $invoiceId]);
-                }
-            } else {
-                Log::warning('Invoice ID missing in Stripe metadata');
+                WebhookService::fire(config('services.n8n.invoice_paid_url'), [
+                    'invoice_id'     => $invoice->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'total'          => $invoice->total,
+                ]);
             }
         }
 
