@@ -1,3 +1,5 @@
+<img width="1863" height="869" alt="Screenshot 2026-04-05 031649" src="https://github.com/user-attachments/assets/97d2923a-8a6a-496e-8264-ff10c5b792f7" />
+
 #  Quvio — Invoice & Quote SaaS Platform
 
 Quvio is a modern full-stack SaaS application designed for freelancers and small businesses to manage quotes, invoices, and payments efficiently.
@@ -420,7 +422,6 @@ Perfect for freelancers, developers, and scalable platforms.
 
  If you like this project, don't forget to **star the repo**
  
-<img width="1863" height="869" alt="Screenshot 2026-04-05 031649" src="https://github.com/user-attachments/assets/97d2923a-8a6a-496e-8264-ff10c5b792f7" />
 <img width="1919" height="832" alt="Screenshot 2026-04-09 020306" src="https://github.com/user-attachments/assets/08aa69a9-d38f-4eb2-bf81-0d4950069034" />
 
 
