@@ -1,4 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import {
+  Component, inject, OnInit, signal
+} from '@angular/core';
 import { CommonModule }    from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { HttpErrorResponse }      from '@angular/common/http';
@@ -7,13 +9,15 @@ import {
   FormArray, Validators, AbstractControl,
 } from '@angular/forms';
 import { QuoteService, ClientService } from '../../../core/services';
+import { AiService }                   from '../../../core/services/ai.service';
 import { Client, Quote }               from '../../../core/models';
 import { ButtonComponent, CardComponent, LoaderComponent } from '../../../shared/components';
 
 @Component({
   selector:    'app-quote-form',
   standalone:  true,
-  imports:     [CommonModule, ReactiveFormsModule, ButtonComponent, CardComponent, LoaderComponent],
+  imports:     [CommonModule, ReactiveFormsModule,
+                ButtonComponent, CardComponent, LoaderComponent],
   templateUrl: './quote-form.component.html',
 })
 export class QuoteFormComponent implements OnInit {
@@ -21,6 +25,7 @@ export class QuoteFormComponent implements OnInit {
   private fb           = inject(FormBuilder);
   private quoteService = inject(QuoteService);
   private clientService = inject(ClientService);
+  private aiService    = inject(AiService);         // ← AI service
   private router       = inject(Router);
   private route        = inject(ActivatedRoute);
 
@@ -28,33 +33,31 @@ export class QuoteFormComponent implements OnInit {
   loading  = signal(false);
   fetching = signal(false);
   error    = signal('');
-  editUuid = signal<string | null>(null); // uuid from route param
+  editUuid = signal<string | null>(null);
+
+  // ── AI state ──────────────────────────────────────────
+  aiDescription = signal('');  // what user types in the AI prompt field
+  aiLoading     = signal(false);
+  aiError       = signal('');
 
   form!: FormGroup;
 
-  get isEdit():  boolean   { return !!this.editUuid(); }
-  get items():   FormArray { return this.form.get('items') as FormArray; }
-
-  // ── Live totals as getters (not signals — forms don't trigger signals) ──
   get subtotal(): number {
-    return this.items?.controls.reduce((sum, ctrl) => {
-      return sum + Number(ctrl.get('quantity')?.value || 0)
-                 * Number(ctrl.get('unit_price')?.value || 0);
-    }, 0) ?? 0;
+    return this.items?.controls.reduce((sum, ctrl) =>
+      sum + Number(ctrl.get('quantity')?.value  || 0)
+          * Number(ctrl.get('unit_price')?.value || 0), 0) ?? 0;
   }
   get taxRate():   number { return Number(this.form?.get('tax_rate')?.value || 0); }
   get taxAmount(): number { return this.subtotal * (this.taxRate / 100); }
   get total():     number { return this.subtotal + this.taxAmount; }
+  get isEdit():    boolean   { return !!this.editUuid(); }
+  get items():     FormArray { return this.form.get('items') as FormArray; }
 
   ngOnInit(): void {
     this.buildForm();
     this.loadClients();
-
     const uuid = this.route.snapshot.paramMap.get('id');
-    if (uuid) {
-      this.editUuid.set(uuid);
-      this.loadQuote(uuid);
-    }
+    if (uuid) { this.editUuid.set(uuid); this.loadQuote(uuid); }
   }
 
   buildForm(): void {
@@ -103,6 +106,47 @@ export class QuoteFormComponent implements OnInit {
         this.fetching.set(false);
       },
       error: () => this.fetching.set(false),
+    });
+  }
+
+  // ── AI GENERATE ───────────────────────────────────────
+  // Called when user clicks "✨ Generate with AI"
+  generateWithAi(): void {
+    const desc = this.aiDescription().trim();
+    if (!desc) {
+      this.aiError.set('Please describe your project first.');
+      return;
+    }
+
+    this.aiLoading.set(true);
+    this.aiError.set('');
+
+    this.aiService.generateItems(desc, 'EUR').subscribe({
+      next: (items) => {
+        this.aiLoading.set(false);
+
+        if (!items || items.length === 0) {
+          this.aiError.set('AI returned no items. Try a more detailed description.');
+          return;
+        }
+
+        // ── Replace existing items with AI-generated ones ──
+        while (this.items.length) this.items.removeAt(0);
+
+        items.forEach(item => {
+          this.items.push(this.fb.group({
+            description: [item.description, Validators.required],
+            quantity:    [item.quantity,    [Validators.required, Validators.min(0.01)]],
+            unit_price:  [item.unit_price,  [Validators.required, Validators.min(0)]],
+          }));
+        });
+      },
+      error: (err: HttpErrorResponse) => {
+        this.aiLoading.set(false);
+        this.aiError.set(
+          err.error?.message ?? 'AI is temporarily unavailable. Try again.'
+        );
+      },
     });
   }
 

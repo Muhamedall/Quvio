@@ -2,41 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-// ============================================================
-// AuthController.php  —  Laravel 13
-//
-// FOUR ENDPOINTS:
-//   POST   /api/auth/register  → create account + return token
-//   POST   /api/auth/login     → verify credentials + return token
-//   POST   /api/auth/logout    → revoke current token
-//   GET    /api/auth/me        → return current user data
-//
-// HOW SANCTUM TOKEN AUTH WORKS:
-//   1. User registers or logs in
-//   2. Laravel creates a "personal access token" string
-//   3. We return it in the JSON response
-//   4. Angular stores it in localStorage
-//   5. Angular sends it in every request:
-//      Authorization: Bearer <token>
-//   6. Laravel's auth:sanctum middleware reads the header,
-//      finds the token in personal_access_tokens table,
-//      loads the user → auth()->user() is now available
-//
-// RESPONSE FORMAT:
-//   We always return the same shape:
-//   {
-//     "user":  { id, name, email, ... },
-//     "token": "1|abc123xyz..."
-//   }
-//   Angular's AuthService expects exactly this shape.
-//
-// WHAT IS JsonResponse?
-//   Laravel's response()->json() returns a JsonResponse object.
-//   It automatically:
-//     - Sets Content-Type: application/json header
-//     - Converts arrays to JSON
-//     - Sets the HTTP status code
-// ============================================================
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
@@ -51,14 +16,10 @@ class AuthController extends Controller
     // ── REGISTER ─────────────────────────────────────────
     // POST /api/auth/register
     //
-    // RegisterRequest auto-validates before this runs.
-    // If validation fails → 422 JSON error sent automatically.
-    // If passes → user is created and token returned.
+   
     public function register(RegisterRequest $request): JsonResponse
     {
-        // validated() returns only the fields that passed validation
-        // The 'password' cast in the User model auto-hashes it
-        // No manual Hash::make() needed in Laravel 13
+       
         $user = User::create($request->validated());
 
         // Create a Sanctum personal access token

@@ -14,7 +14,6 @@
     <app-button variant="secondary" (click)="cancel()">Cancel</app-button>
   </div>
 
-  <!-- Loading existing quote -->
   @if (fetching()) {
     <app-loader text="Loading quote..." />
   } @else {
@@ -27,7 +26,110 @@
         </div>
       }
 
-      <!-- ── Client + Settings ── -->
+      <!-- ══════════════════════════════════════════════ -->
+      <!-- ✨ AI GENERATOR CARD                          -->
+      <!-- ══════════════════════════════════════════════ -->
+      <div class="bg-gradient-to-br from-indigo-50 to-purple-50
+                  border border-indigo-200 rounded-xl p-5 space-y-3">
+
+        <!-- Header -->
+        <div class="flex items-center gap-2">
+          <span class="text-lg">✨</span>
+          <div>
+            <h3 class="text-sm font-bold text-indigo-900">AI Line Item Generator</h3>
+            <p class="text-xs text-indigo-600">
+              Describe your project and AI will generate professional line items
+            </p>
+          </div>
+          <span class="ml-auto text-xs bg-emerald-100 text-emerald-700
+                       font-semibold px-2 py-0.5 rounded-full">
+            Free — Powered by Gemini
+          </span>
+        </div>
+
+        <!-- Input row -->
+        <div class="flex gap-3">
+          <input
+            type="text"
+            placeholder='e.g. "React dashboard 5 days" or "SEO audit + 3 months optimization"'
+            [value]="aiDescription()"
+            (input)="aiDescription.set($any($event.target).value)"
+            (keydown.enter)="$event.preventDefault(); generateWithAi()"
+            class="flex-1 px-3 py-2.5 text-sm border border-indigo-200 rounded-lg
+                   outline-none focus:border-indigo-400 focus:ring-2
+                   focus:ring-indigo-100 transition-all bg-white
+                   placeholder-gray-400"
+          />
+          <button
+            type="button"
+            [disabled]="aiLoading()"
+            (click)="generateWithAi()"
+            class="flex items-center gap-2 px-4 py-2.5 bg-indigo-600
+                   hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed
+                   text-white text-sm font-semibold rounded-lg transition-all
+                   whitespace-nowrap"
+          >
+            @if (aiLoading()) {
+              <!-- Loading spinner -->
+              <svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10"
+                        stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              Generating...
+            } @else {
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Generate with AI
+            }
+          </button>
+        </div>
+
+        <!-- AI error -->
+        @if (aiError()) {
+          <p class="text-xs text-red-600 bg-red-50 border border-red-200
+                    rounded-lg px-3 py-2">
+            ⚠️ {{ aiError() }}
+          </p>
+        }
+
+        <!-- AI loading feedback -->
+        @if (aiLoading()) {
+          <div class="flex items-center gap-2 text-xs text-indigo-600">
+            <svg class="w-3.5 h-3.5 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10"
+                      stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            Gemini is generating professional line items for you...
+          </div>
+        }
+
+        <!-- Hint examples -->
+        @if (!aiLoading() && !aiError()) {
+          <div class="flex flex-wrap gap-2">
+            <span class="text-xs text-indigo-500 font-medium">Try:</span>
+            @for (example of ['Landing page design', 'Mobile app MVP React Native',
+                              'SEO audit + content strategy', 'Backend API Laravel']; track example) {
+              <button
+                type="button"
+                (click)="aiDescription.set(example)"
+                class="text-xs text-indigo-600 bg-white border border-indigo-200
+                       hover:bg-indigo-50 px-2 py-0.5 rounded-full transition-colors">
+                {{ example }}
+              </button>
+            }
+          </div>
+        }
+
+      </div>
+
+      <!-- ── Quote Details ── -->
       <app-card title="Quote Details" padding="md">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
 
@@ -35,14 +137,13 @@
           <div class="space-y-1.5">
             <label class="block text-sm font-medium text-gray-700">Client *</label>
             <select formControlName="client_id"
-              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none
-                     focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all bg-white"
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all bg-white"
               [class.border-red-400]="form.get('client_id')?.invalid && form.get('client_id')?.touched">
               <option value="">Select a client...</option>
               @for (client of clients(); track client.id) {
-                <option [value]="client.id">
-                  {{ client.company ?? client.name }}
-                </option>
+                <option [value]="client.id">{{ client.company ?? client.name }}</option>
               }
             </select>
             @if (form.get('client_id')?.invalid && form.get('client_id')?.touched) {
@@ -54,24 +155,27 @@
           <div class="space-y-1.5">
             <label class="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
             <input formControlName="tax_rate" type="number" min="0" max="100"
-              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none
-                     focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all" />
           </div>
 
           <!-- Valid until -->
           <div class="space-y-1.5">
             <label class="block text-sm font-medium text-gray-700">Valid Until</label>
             <input formControlName="valid_until" type="date"
-              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none
-                     focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all" />
           </div>
 
           <!-- Notes -->
           <div class="space-y-1.5">
             <label class="block text-sm font-medium text-gray-700">Notes</label>
             <input formControlName="notes" type="text" placeholder="Optional notes..."
-              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg outline-none
-                     focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" />
+              class="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg
+                     outline-none focus:border-indigo-400 focus:ring-2
+                     focus:ring-indigo-100 transition-all" />
           </div>
 
         </div>
@@ -79,7 +183,6 @@
 
       <!-- ── Line Items ── -->
       <app-card title="Line Items" padding="md">
-
         <div class="space-y-3 mt-1" formArrayName="items">
 
           <!-- Column headers -->
@@ -93,33 +196,39 @@
           <!-- Item rows -->
           @for (item of items.controls; track $index) {
             <div [formGroupName]="$index"
-              class="grid grid-cols-12 gap-3 items-start bg-gray-50 p-3 rounded-lg">
+              class="grid grid-cols-12 gap-3 items-start bg-gray-50 p-3 rounded-lg
+                     transition-all"
+              [class.ring-2]="aiLoading()"
+              [class.ring-indigo-200]="aiLoading()">
 
               <!-- Description -->
               <div class="col-span-6">
                 <input formControlName="description" type="text"
                   placeholder="Service description"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
-                         focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all bg-white"
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all bg-white"
                   [class.border-red-400]="item.get('description')?.invalid && item.get('description')?.touched" />
               </div>
 
               <!-- Quantity -->
               <div class="col-span-2">
                 <input formControlName="quantity" type="number" min="0.01" step="0.5"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
-                         focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all bg-white text-center" />
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all bg-white text-center" />
               </div>
 
               <!-- Unit price -->
               <div class="col-span-2">
                 <input formControlName="unit_price" type="number" min="0" step="0.01"
-                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none
-                         focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all bg-white text-right" />
+                  class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg
+                         outline-none focus:border-indigo-400 focus:ring-2
+                         focus:ring-indigo-100 transition-all bg-white text-right" />
               </div>
 
               <!-- Subtotal + remove -->
-              <div class="col-span-2 flex items-center justify-end gap-2">
+              <div class="col-span-2 flex items-center justify-end gap-2 pt-2">
                 <span class="text-sm font-semibold text-gray-900 font-mono">
                   {{ formatCurrency(itemSubtotal(item)) }}
                 </span>
@@ -127,7 +236,8 @@
                   <button type="button"
                     class="text-red-400 hover:text-red-600 transition-colors shrink-0"
                     (click)="removeItem($index)">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2">
                       <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                   </button>
@@ -139,18 +249,20 @@
 
           <!-- Add item button -->
           <button type="button"
-            class="flex items-center gap-2 text-sm text-indigo-500 hover:text-indigo-700 font-medium transition-colors"
+            class="flex items-center gap-2 text-sm text-indigo-500
+                   hover:text-indigo-700 font-medium transition-colors"
             (click)="addItem()">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2.5">
               <path d="M12 4v16m8-8H4" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            Add Item
+            Add Item manually
           </button>
 
         </div>
 
-        <!-- Totals summary -->
-        <div class="mt-4 pt-4 border-t border-gray-200 space-y-2">
+        <!-- Totals -->
+        <div class="mt-4 pt-4 border-t border-gray-200">
           <div class="flex justify-end">
             <div class="space-y-1.5 w-64">
               <div class="flex justify-between text-sm">
@@ -172,7 +284,7 @@
       </app-card>
 
       <!-- Submit -->
-      <div class="flex items-center justify-end gap-3 mt-4">
+      <div class="flex items-center justify-end gap-3">
         <app-button variant="secondary" type="button" (click)="cancel()">Cancel</app-button>
         <app-button variant="primary" type="submit" [loading]="loading()">
           {{ isEdit ? 'Save Changes' : 'Create Quote' }}

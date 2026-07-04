@@ -25,6 +25,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
     Route::get ('auth/me',     [AuthController::class, 'me']);
 
+    // AI — protected 
+Route::prefix('ai')->group(function () {
+    Route::post('generate-items', [App\Http\Controllers\Api\AiController::class, 'generateItems']);
+});
     // Dashboard
     Route::get('dashboard', [DashboardController::class, 'index']);
 
